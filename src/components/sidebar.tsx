@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { 
   Home, 
+  Building,
   FolderKanban, 
   CheckSquare, 
   FileText, 
@@ -29,6 +30,7 @@ export function Sidebar({ activeTab = 'dashboard', onTabChange }: SidebarProps) 
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'organizations', label: 'Organizations', icon: Building },
     { id: 'projects', label: 'Projects', icon: FolderKanban },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -73,6 +75,10 @@ export function Sidebar({ activeTab = 'dashboard', onTabChange }: SidebarProps) 
             Quick Actions
           </h3>
           <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Plus className="mr-2 h-4 w-4" />
+              New Organization
+            </Button>
             <Button variant="outline" size="sm" className="w-full justify-start">
               <Plus className="mr-2 h-4 w-4" />
               New Project

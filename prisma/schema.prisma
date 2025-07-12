@@ -49,6 +49,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  organizations Organization[]
   projects Project[]
   tasks    Task[]
   notes    Note[]
@@ -65,20 +66,35 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Project {
+model Organization {
   id          String    @id @default(cuid())
   name        String
   description String?
-  status      String    @default("ACTIVE")
   color       String?
-  dueDate     DateTime?
   userId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tasks Task[]
-  notes Note[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
+}
+
+model Project {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  status         String    @default("ACTIVE")
+  color          String?
+  dueDate        DateTime?
+  userId         String
+  organizationId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  tasks        Task[]
+  notes        Note[]
 }
 
 model Task {
@@ -147,6 +163,8 @@ model PomodoroSession {
   duration  Int      @default(25) // in minutes
   type      String   @default("FOCUS") // FOCUS, SHORT_BREAK, LONG_BREAK
   completed Boolean  @default(false)
+  startTime DateTime?
+  endTime   DateTime?
   taskId    String?
   userId    String
   createdAt DateTime @default(now())

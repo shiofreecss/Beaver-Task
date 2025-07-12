@@ -13,6 +13,7 @@ import {
   Clock,
   TrendingUp
 } from 'lucide-react'
+import { OrganizationsView } from '@/components/organizations/organizations-view'
 import { ProjectsView } from '@/components/projects/projects-view'
 import { TasksView } from '@/components/tasks/tasks-view'
 import { NotesView } from '@/components/notes/notes-view'
@@ -25,6 +26,8 @@ export function Dashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'organizations':
+        return <OrganizationsView />
       case 'projects':
         return <ProjectsView />
       case 'tasks':
