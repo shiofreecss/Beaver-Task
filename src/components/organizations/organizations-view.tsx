@@ -96,8 +96,8 @@ export function OrganizationsView() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
-          <p className="text-gray-600">Manage your organizations and teams</p>
+          <h1 className="text-2xl font-bold text-foreground">Organizations</h1>
+          <p className="text-muted-foreground">Manage your organizations and teams</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -148,16 +148,16 @@ export function OrganizationsView() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{org.projectsCount}</p>
-                    <p className="text-sm text-gray-600">Projects</p>
+                    <p className="text-2xl font-bold text-foreground">{org.projectsCount}</p>
+                    <p className="text-sm text-muted-foreground">Projects</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{org.membersCount}</p>
-                    <p className="text-sm text-gray-600">Members</p>
+                    <p className="text-2xl font-bold text-foreground">{org.membersCount}</p>
+                    <p className="text-sm text-muted-foreground">Members</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Created {org.createdAt}</span>
                   <div className="flex items-center">
                     <Users className="mr-1 h-3 w-3" />

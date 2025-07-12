@@ -118,8 +118,8 @@ export function ProjectsView() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600">Manage your projects and track progress</p>
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="text-muted-foreground">Manage your projects and track progress</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -169,11 +169,11 @@ export function ProjectsView() {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1">
                     <span>Progress</span>
                     <span>{project.progress}%</span>
                   </div>
-                  <div className="w-full h-2 bg-gray-200 rounded-full">
+                  <div className="w-full h-2 bg-muted rounded-full">
                     <div
                       className={`h-full rounded-full ${project.color}`}
                       style={{ width: `${project.progress}%` }}
@@ -181,7 +181,7 @@ export function ProjectsView() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3" />
                     <span>Due {project.dueDate}</span>

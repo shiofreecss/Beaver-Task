@@ -141,10 +141,10 @@ export function TasksView() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'border-l-red-500 bg-red-50'
-      case 'medium': return 'border-l-yellow-500 bg-yellow-50'
-      case 'low': return 'border-l-green-500 bg-green-50'
-      default: return 'border-l-gray-500 bg-gray-50'
+      case 'high': return 'border-l-red-500 bg-red-50 dark:bg-red-950/20'
+      case 'medium': return 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20'
+      case 'low': return 'border-l-green-500 bg-green-50 dark:bg-green-950/20'
+      default: return 'border-l-muted bg-muted/20'
     }
   }
 
@@ -152,8 +152,8 @@ export function TasksView() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-600">Manage your tasks and track progress</p>
+          <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+          <p className="text-muted-foreground">Manage your tasks and track progress</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -177,14 +177,14 @@ export function TasksView() {
                     {task.status === 'completed' ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     ) : (
-                      <Circle className="h-5 w-5 text-gray-400" />
+                      <Circle className="h-5 w-5 text-muted-foreground" />
                     )}
                   </button>
                   <div>
-                    <CardTitle className={`text-lg ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+                    <CardTitle className={`text-lg ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                       {task.title}
                     </CardTitle>
-                    <p className={`text-sm text-gray-600 ${task.status === 'completed' ? 'line-through' : ''}`}>
+                    <p className={`text-sm text-muted-foreground ${task.status === 'completed' ? 'line-through' : ''}`}>
                       {task.description}
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export function TasksView() {
               </div>
             </CardHeader>
             <CardContent className="py-3">
-              <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center">
                     <Calendar className="mr-1 h-3 w-3" />

@@ -138,8 +138,8 @@ export function PomodoroView() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pomodoro Timer</h1>
-          <p className="text-gray-600">Stay focused with time-boxed work sessions</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Pomodoro Timer</h1>
+          <p className="text-gray-600 dark:text-gray-400">Stay focused with time-boxed work sessions</p>
         </div>
         <Button variant="outline">
           <Settings className="mr-2 h-4 w-4" />
@@ -158,40 +158,44 @@ export function PomodoroView() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-                             {/* Session Type Selector */}
-               <div className="flex justify-center space-x-2">
-                 {Object.entries(sessionTypes).map(([key, type]) => (
-                   <Button
-                     key={key}
-                     variant={sessionType === key ? "default" : "outline"}
-                     size="sm"
-                     onClick={() => switchSession(key as any)}
-                     className="text-xs"
-                     disabled={isActive}
-                   >
-                     {type.label}
-                   </Button>
-                 ))}
-               </div>
+              {/* Session Type Selector */}
+              <div className="flex justify-center space-x-2">
+                {Object.entries(sessionTypes).map(([key, type]) => (
+                  <Button
+                    key={key}
+                    variant={sessionType === key ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => switchSession(key as any)}
+                    className="text-xs"
+                    disabled={isActive}
+                  >
+                    {type.label}
+                  </Button>
+                ))}
+              </div>
 
-               {/* Task Selection for Focus Sessions */}
-               {sessionType === 'focus' && (
-                 <div className="max-w-sm mx-auto">
-                   <Select value={selectedTaskId} onValueChange={setSelectedTaskId} disabled={isActive}>
-                     <SelectTrigger>
-                       <SelectValue placeholder="Select a task (optional)" />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="">No specific task</SelectItem>
-                       {mockTasks.map((task) => (
-                         <SelectItem key={task.id} value={task.id}>
-                           {task.title}
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
-                 </div>
-               )}
+              {/* Task Selection for Focus Sessions */}
+              {sessionType === 'focus' && (
+                <div className="max-w-sm mx-auto">
+                  <Select 
+                    value={selectedTaskId} 
+                    onValueChange={(value) => setSelectedTaskId(value === "none" ? "" : value)} 
+                    disabled={isActive}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a task (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No specific task</SelectItem>
+                      {mockTasks.map((task) => (
+                        <SelectItem key={task.id} value={task.id}>
+                          {task.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Timer Display */}
               <div className="relative">
@@ -201,9 +205,11 @@ export function PomodoroView() {
                       cx="50"
                       cy="50"
                       r="45"
-                      stroke="#e5e7eb"
+                      stroke="currentColor"
+                      strokeOpacity="0.1"
                       strokeWidth="8"
                       fill="none"
+                      className="dark:stroke-gray-700"
                     />
                     <circle
                       cx="50"
@@ -219,126 +225,116 @@ export function PomodoroView() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-4xl font-mono font-bold text-gray-900">
+                    <span className="text-4xl font-mono font-bold text-gray-900 dark:text-gray-100">
                       {formatTime(timeLeft)}
                     </span>
                   </div>
                 </div>
               </div>
 
-                             {/* Controls */}
-               <div className="flex justify-center space-x-4">
-                 <Button
-                   onClick={toggleTimer}
-                   size="lg"
-                   className={`${sessionTypes[sessionType].color}`}
-                 >
-                   {isActive ? (
-                     <>
-                       <Pause className="mr-2 h-5 w-5" />
-                       Pause
-                     </>
-                   ) : (
-                     <>
-                       <Play className="mr-2 h-5 w-5" />
-                       Start
-                     </>
-                   )}
-                 </Button>
-                 
-                 <Button onClick={resetTimer} variant="outline" size="lg">
-                   <RotateCcw className="mr-2 h-5 w-5" />
-                   Reset
-                 </Button>
+              {/* Controls */}
+              <div className="flex justify-center space-x-4">
+                <Button
+                  onClick={toggleTimer}
+                  size="lg"
+                  className={`${sessionTypes[sessionType].color}`}
+                >
+                  {isActive ? (
+                    <>
+                      <Pause className="mr-2 h-5 w-5" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-5 w-5" />
+                      Start
+                    </>
+                  )}
+                </Button>
+                
+                <Button onClick={resetTimer} variant="outline" size="lg">
+                  <RotateCcw className="mr-2 h-5 w-5" />
+                  Reset
+                </Button>
 
-                 {isActive && (
-                   <Button onClick={cancelSession} variant="destructive" size="lg">
-                     <X className="mr-2 h-5 w-5" />
-                     Cancel
-                   </Button>
-                 )}
-               </div>
+                {isActive && (
+                  <Button onClick={cancelSession} variant="destructive" size="lg">
+                    <X className="mr-2 h-5 w-5" />
+                    Cancel
+                  </Button>
+                )}
+              </div>
 
               {/* Session Counter */}
               <div className="text-center">
                 <p className="text-sm text-gray-600">Completed Sessions Today</p>
-                <p className="text-2xl font-bold text-gray-900">{completedSessions}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{completedSessions}</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-                 {/* Stats and History */}
-         <div className="space-y-6">
-           {/* Today's Sessions */}
-           <Card>
-             <CardHeader>
-               <CardTitle className="text-lg">Today's Sessions</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <div className="space-y-2">
-                 {[...todaysSessions, ...pomodoroSessions].map((session, index) => (
-                   <div
-                     key={index}
-                     className={`flex items-center justify-between p-2 rounded ${
-                       session.completed ? 'bg-green-50' : 'bg-gray-50'
-                     }`}
-                   >
-                     <div className="flex items-center space-x-2">
-                       <div className={`w-3 h-3 rounded-full ${
-                         session.type === 'focus' ? 'bg-red-500' :
-                         session.type === 'shortBreak' ? 'bg-green-500' :
-                         'bg-blue-500'
-                       }`}></div>
-                       <div className="flex flex-col">
-                         <span className="text-sm capitalize">
-                           {session.type === 'shortBreak' ? 'Short Break' :
-                            session.type === 'longBreak' ? 'Long Break' : 'Focus'}
-                         </span>
-                         {session.taskId && (
-                           <span className="text-xs text-gray-500">
-                             {mockTasks.find(t => t.id === session.taskId)?.title}
-                           </span>
-                         )}
-                       </div>
-                     </div>
-                     <div className="flex items-center space-x-2">
-                       <span className="text-xs text-gray-500">{session.startTime || '10:00'}</span>
-                       {session.completed && (
-                         <CheckCircle2 className="h-4 w-4 text-green-600" />
-                       )}
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             </CardContent>
-           </Card>
-
-          {/* Weekly Stats */}
+        {/* Stats and History */}
+        <div className="space-y-6">
+          {/* Today's Sessions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">This Week</CardTitle>
+              <CardTitle className="flex items-center">
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                Today's Sessions
+              </CardTitle>
             </CardHeader>
-                         <CardContent>
-               <div className="space-y-4">
-                 <div className="flex justify-between">
-                   <span className="text-sm text-gray-600">Total Sessions</span>
-                   <span className="font-medium">{28 + pomodoroSessions.length}</span>
-                 </div>
-                 <div className="flex justify-between">
-                   <span className="text-sm text-gray-600">Focus Time</span>
-                   <span className="font-medium">{Math.floor((11 * 60 + 40 + pomodoroSessions.filter(s => s.type === 'focus').length * 25) / 60)}h {(11 * 60 + 40 + pomodoroSessions.filter(s => s.type === 'focus').length * 25) % 60}m</span>
-                 </div>
-                 <div className="flex justify-between">
-                   <span className="text-sm text-gray-600">Focus Sessions</span>
-                   <span className="font-medium">{completedSessions}</span>
-                 </div>
-                 <div className="flex justify-between">
-                   <span className="text-sm text-gray-600">Current Streak</span>
-                   <span className="font-medium">12 days</span>
-                 </div>
-               </div>
-             </CardContent>
+            <CardContent>
+              <div className="space-y-4">
+                {todaysSessions.map((session, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-3 ${
+                        session.type === 'focus' ? 'bg-red-500' : 
+                        session.type === 'shortBreak' ? 'bg-green-500' : 'bg-blue-500'
+                      }`} />
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {session.type === 'focus' ? 'Focus Time' :
+                         session.type === 'shortBreak' ? 'Short Break' : 'Long Break'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{session.startTime}</span>
+                      {session.completed && (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* This Week's Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle>This Week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</span>
+                  <span className="font-bold text-gray-900 dark:text-gray-100">{pomodoroSessions.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Focus Time</span>
+                  <span className="font-bold text-gray-900 dark:text-gray-100">
+                    {Math.floor(pomodoroSessions.filter(s => s.type === 'focus').length * 25 / 60)}h {(pomodoroSessions.filter(s => s.type === 'focus').length * 25) % 60}m
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Current Streak</span>
+                  <span className="font-bold text-gray-900 dark:text-gray-100">
+                    {completedSessions} sessions
+                  </span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
