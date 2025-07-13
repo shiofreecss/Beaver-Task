@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User } from 'lucide-react'
+import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { ProfileSettingsModal } from '@/components/settings/profile-settings-modal'
+import { useRouter } from 'next/navigation'
+import { toast } from '@/components/ui/use-toast'
 
 interface SidebarProps {
   activeTab: string
@@ -15,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { data: session } = useSession()
   const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const router = useRouter()
   
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -25,6 +28,24 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     { id: 'habits', label: 'Habits', icon: Target },
     { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
   ]
+
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirect: false })
+      toast({
+        title: 'Success',
+        description: 'Logged out successfully!',
+      })
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to log out. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   return (
     <>
@@ -72,6 +93,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           >
             <Settings className="mr-3 h-4 w-4" />
             App Settings
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-left text-red-500 hover:text-red-600"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-3 h-4 w-4" />
+            Sign Out
           </Button>
         </div>
       </div>

@@ -37,6 +37,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Enable SQLite JSON1 extension
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -44,7 +45,7 @@ model User {
   password      String
   emailVerified DateTime?
   image         String?
-  settings      String?
+  settings      String?   @default("{}")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

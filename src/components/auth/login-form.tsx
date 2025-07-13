@@ -26,8 +26,8 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'shio@beaver.foundation',
-      password: 'Test@1234',
+      email: '',
+      password: '',
     },
   })
 
@@ -35,15 +35,11 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      console.log('Attempting login with:', { email: data.email })
-      
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       })
-
-      console.log('SignIn result:', result)
 
       if (result?.error) {
         console.error('Login error:', result.error)
@@ -77,12 +73,6 @@ export function LoginForm() {
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
-        <p>Test Account:</p>
-        <p>Email: shio@beaver.foundation</p>
-        <p>Password: Test@1234</p>
-      </div>
-      
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

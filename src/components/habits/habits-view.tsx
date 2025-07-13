@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Plus, CheckCircle2, Circle, Flame, Calendar, MoreVertical, Pencil, Trash2, Grid3X3, List, Table, Target } from 'lucide-react'
 import {
   DropdownMenu,
@@ -14,17 +13,46 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { CreateHabitModal } from './create-habit-modal'
 
 type ViewMode = 'grid' | 'list' | 'table'
 
+interface HabitEntry {
+  id: string
+  date: string
+  completed: boolean
+  habitId: string
+}
+
+interface Habit {
+  id: string
+  name: string
+  description?: string
+  frequency: string
+  target: number
+  color?: string
+  completedToday: boolean
+  streak: number
+  completionRate: number
+  weeklyProgress: boolean[]
+  entries?: HabitEntry[]
+}
+
+interface HabitFormData {
+  name: string
+  description?: string
+  frequency: string
+  target: number
+  color?: string
+}
+
 export function HabitsView() {
-  const [habits, setHabits] = useState([])
+  const [habits, setHabits] = useState<Habit[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingHabit, setEditingHabit] = useState<any>(null)
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
-  // Fetch habits on component mount
   useEffect(() => {
     fetchHabits()
   }, [])
@@ -47,7 +75,7 @@ export function HabitsView() {
     }
   }
 
-  const handleCreateHabit = async (habitData: any) => {
+  const handleCreateHabit = async (habitData: HabitFormData) => {
     try {
       const response = await fetch('/api/habits', {
         method: 'POST',
@@ -59,9 +87,8 @@ export function HabitsView() {
       
       const newHabit = await response.json()
       setHabits([newHabit, ...habits])
-      setShowCreateModal(false)
       toast({
-        title: "Habit created",
+        title: "Success",
         description: `${habitData.name} has been created successfully.`,
       })
     } catch (error) {
@@ -71,10 +98,11 @@ export function HabitsView() {
         description: "Failed to create habit. Please try again.",
         variant: "destructive"
       })
+      throw error
     }
   }
 
-  const handleEditHabit = async (habitData: any) => {
+  const handleEditHabit = async (habitData: HabitFormData) => {
     if (!editingHabit) return
 
     try {
@@ -92,7 +120,7 @@ export function HabitsView() {
       ))
       setEditingHabit(null)
       toast({
-        title: "Habit updated",
+        title: "Success",
         description: `${habitData.name} has been updated successfully.`,
       })
     } catch (error) {
@@ -102,6 +130,7 @@ export function HabitsView() {
         description: "Failed to update habit. Please try again.",
         variant: "destructive"
       })
+      throw error
     }
   }
 
@@ -115,7 +144,7 @@ export function HabitsView() {
       
       setHabits(habits.filter(habit => habit.id !== habitId))
       toast({
-        title: "Habit deleted",
+        title: "Success",
         description: "The habit has been deleted successfully.",
       })
     } catch (error) {
@@ -461,7 +490,6 @@ export function HabitsView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
           <div className="flex rounded-lg border p-1">
             {viewModeButtons.map(({ mode, icon: Icon, label }) => (
               <Button
@@ -505,69 +533,15 @@ export function HabitsView() {
         renderCurrentView()
       )}
 
-      {/* Create/Edit Modal */}
-      {(showCreateModal || editingHabit) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>{editingHabit ? 'Edit Habit' : 'Create New Habit'}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Name</label>
-                <Input
-                  defaultValue={editingHabit?.name}
-                  placeholder="Enter habit name"
-                  onChange={(e) => {
-                    if (editingHabit) {
-                      setEditingHabit({ ...editingHabit, name: e.target.value })
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Input
-                  defaultValue={editingHabit?.description}
-                  placeholder="Enter habit description"
-                  onChange={(e) => {
-                    if (editingHabit) {
-                      setEditingHabit({ ...editingHabit, description: e.target.value })
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowCreateModal(false)
-                    setEditingHabit(null)
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (editingHabit) {
-                      handleEditHabit(editingHabit)
-                    } else {
-                      handleCreateHabit({
-                        name: document.querySelector('input[placeholder="Enter habit name"]')?.value,
-                        description: document.querySelector('input[placeholder="Enter habit description"]')?.value
-                      })
-                    }
-                  }}
-                  className="flex-1"
-                >
-                  {editingHabit ? 'Save Changes' : 'Create'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <CreateHabitModal
+        open={showCreateModal || editingHabit !== null}
+        onOpenChange={(open) => {
+          setShowCreateModal(open)
+          if (!open) setEditingHabit(null)
+        }}
+        onSubmit={editingHabit ? handleEditHabit : handleCreateHabit}
+        habit={editingHabit || undefined}
+      />
     </div>
   )
 } 

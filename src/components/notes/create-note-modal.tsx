@@ -37,7 +37,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
     title: '',
     content: '',
     tags: '',
-    projectId: ''
+    projectId: 'none'
   })
 
   useEffect(() => {
@@ -46,14 +46,14 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
         title: initialData.title,
         content: initialData.content,
         tags: initialData.tags.join(', '),
-        projectId: initialData.projectId || ''
+        projectId: initialData.projectId || 'none'
       })
     } else {
       setFormData({
         title: '',
         content: '',
         tags: '',
-        projectId: ''
+        projectId: 'none'
       })
     }
   }, [initialData])
@@ -61,13 +61,17 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.title.trim()) {
-      onSubmit(formData)
+      const submissionData = {
+        ...formData,
+        projectId: formData.projectId === 'none' ? undefined : formData.projectId
+      }
+      onSubmit(submissionData)
       if (!initialData) {
         setFormData({
           title: '',
           content: '',
           tags: '',
-          projectId: ''
+          projectId: 'none'
         })
       }
     }
@@ -75,7 +79,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[725px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Note' : 'Create New Note'}</DialogTitle>
         </DialogHeader>
@@ -97,7 +101,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
               value={formData.content}
               onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
               placeholder="Enter note content"
-              rows={4}
+              rows={8}
             />
           </div>
 
@@ -119,7 +123,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Project</SelectItem>
+                  <SelectItem value="none">No Project</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}

@@ -22,6 +22,15 @@ const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   image: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  settings: z.object({
+    theme: z.enum(['light', 'dark', 'system']).default('system'),
+    emailNotifications: z.boolean().default(true),
+    pushNotifications: z.boolean().default(true)
+  }).default({
+    theme: 'system',
+    emailNotifications: true,
+    pushNotifications: true
+  })
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -31,6 +40,8 @@ interface ProfileSettingsModalProps {
     id: string
     name: string | null
     email: string
+    image?: string | null
+    settings?: any
   }
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,6 +49,7 @@ interface ProfileSettingsModalProps {
 
 export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettingsModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [imagePreview, setImagePreview] = useState(user.image || '')
   const router = useRouter()
   const { toast } = useToast()
 
@@ -46,9 +58,20 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
     defaultValues: {
       name: user.name || '',
       email: user.email,
-      image: '',
+      image: user.image || '',
+      settings: user.settings || {
+        theme: 'system',
+        emailNotifications: true,
+        pushNotifications: true
+      }
     },
   })
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setImagePreview(value)
+    form.setValue('image', value)
+  }
 
   const onSubmit = async (data: ProfileFormValues) => {
     setIsLoading(true)
@@ -63,7 +86,8 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update profile')
+        const error = await response.text()
+        throw new Error(error || 'Failed to update profile')
       }
 
       toast({
@@ -77,7 +101,7 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
       console.error('Profile update error:', error)
       toast({
         title: 'Error',
-        description: 'Failed to update profile. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to update profile. Please try again.',
         variant: 'destructive',
       })
     } finally {
@@ -91,7 +115,7 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
         <DialogHeader>
           <DialogTitle>Profile Settings</DialogTitle>
           <DialogDescription>
-            Update your profile information. Your email address will be used for notifications.
+            Update your profile information and preferences.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -126,17 +150,69 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
 
           <div className="space-y-2">
             <Label htmlFor="image">Profile Image URL</Label>
-            <Input
-              id="image"
-              {...form.register('image')}
-              disabled={isLoading}
-              placeholder="https://example.com/avatar.jpg"
-            />
+            <div className="flex gap-4 items-center">
+              <Input
+                id="image"
+                onChange={handleImageChange}
+                value={form.watch('image')}
+                disabled={isLoading}
+                placeholder="https://example.com/avatar.jpg"
+              />
+              {imagePreview && (
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagePreview}
+                    alt="Profile preview"
+                    className="w-full h-full object-cover"
+                    onError={() => setImagePreview('')}
+                  />
+                </div>
+              )}
+            </div>
             {form.formState.errors.image && (
               <p className="text-sm text-red-500">
                 {form.formState.errors.image.message}
               </p>
             )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">Preferences</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="theme">Theme</Label>
+              <select
+                id="theme"
+                {...form.register('settings.theme')}
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                disabled={isLoading}
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="emailNotifications"
+                {...form.register('settings.emailNotifications')}
+                disabled={isLoading}
+              />
+              <Label htmlFor="emailNotifications">Enable email notifications</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="pushNotifications"
+                {...form.register('settings.pushNotifications')}
+                disabled={isLoading}
+              />
+              <Label htmlFor="pushNotifications">Enable push notifications</Label>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">
