@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Circle, CheckCircle2, Clock, Calendar, MoreVertical, Pencil, Trash2, AlertTriangle, Flag } from 'lucide-react'
+import { Plus, Circle, CheckCircle2, Clock, Calendar, MoreVertical, Pencil, Trash2, AlertTriangle, Flag, Grid3X3, List, Table, Columns, CheckSquare } from 'lucide-react'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import {
   DropdownMenu,
@@ -20,9 +20,12 @@ interface TasksViewProps {
   projectId?: string
 }
 
+type ViewMode = 'grid' | 'list' | 'table' | 'kanban'
+
 export function TasksView({ projectId }: TasksViewProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   // Get tasks and projects from stores
   const tasks = useTaskStore((state) => state.tasks)
@@ -73,21 +76,6 @@ export function TasksView({ projectId }: TasksViewProps) {
   }
 
   const handleDeleteTask = (taskId: string) => {
-    const taskToDelete = tasks.find(task => task.id === taskId)
-    if (!taskToDelete) return
-
-    // Check if task has active Pomodoro sessions
-    const hasActiveSessions = false // This would need to be replaced with actual check
-    
-    if (hasActiveSessions) {
-      toast({
-        title: "Cannot delete task",
-        description: "Please complete or cancel active Pomodoro sessions before deleting this task.",
-        variant: "destructive"
-      })
-      return
-    }
-    
     deleteTask(taskId)
     toast({
       title: "Task deleted",
@@ -98,49 +86,55 @@ export function TasksView({ projectId }: TasksViewProps) {
   const toggleTask = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
-
-    updateTask(taskId, {
-      status: task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
-    })
-
+    
+    const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
+    updateTask(taskId, { status: newStatus })
     toast({
-      title: task.status === 'COMPLETED' ? "Task reopened" : "Task completed",
-      description: `${task.title} has been ${task.status === 'COMPLETED' ? 'reopened' : 'marked as complete'}.`,
+      title: `Task ${newStatus === 'COMPLETED' ? 'completed' : 'reopened'}`,
+      description: `${task.title} has been ${newStatus === 'COMPLETED' ? 'marked as complete' : 'reopened'}.`,
     })
   }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P3': return 'bg-red-500 text-white'
-      case 'P2': return 'bg-orange-500 text-white'
-      case 'P1': return 'bg-yellow-500 text-white'
-      case 'P0': return 'bg-green-500 text-white'
-      default: return 'bg-muted text-muted-foreground'
+      case 'P1': return 'text-red-600 bg-red-50 border-red-200'
+      case 'P2': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      case 'P3': return 'text-green-600 bg-green-50 border-green-200'
+      default: return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'S3': return 'bg-red-500 text-white'
-      case 'S2': return 'bg-orange-500 text-white'
-      case 'S1': return 'bg-yellow-500 text-white'
-      case 'S0': return 'bg-green-500 text-white'
-      default: return 'bg-muted text-muted-foreground'
+      case 'S1': return 'text-red-600 bg-red-50 border-red-200'
+      case 'S2': return 'text-orange-600 bg-orange-50 border-orange-200'
+      case 'S3': return 'text-blue-600 bg-blue-50 border-blue-200'
+      default: return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
   const getBorderColor = (priority: string, severity: string) => {
-    // Use the higher of priority or severity for the border color
-    const level = Math.max(
-      parseInt(priority.charAt(1)),
-      parseInt(severity.charAt(1))
-    )
-    switch (level) {
-      case 3: return 'border-l-red-500 bg-red-50 dark:bg-red-950/20'
-      case 2: return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/20'
-      case 1: return 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20'
-      case 0: return 'border-l-green-500 bg-green-50 dark:bg-green-950/20'
-      default: return 'border-l-muted bg-muted/20'
+    if (priority === 'P1' || severity === 'S1') return 'border-l-red-500'
+    if (priority === 'P2' || severity === 'S2') return 'border-l-yellow-500'
+    if (priority === 'P3' || severity === 'S3') return 'border-l-green-500'
+    return 'border-l-gray-300'
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'TODO': return 'bg-gray-500'
+      case 'IN_PROGRESS': return 'bg-blue-500'
+      case 'COMPLETED': return 'bg-green-500'
+      default: return 'bg-gray-500'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'TODO': return 'To Do'
+      case 'IN_PROGRESS': return 'In Progress'
+      case 'COMPLETED': return 'Completed'
+      default: return status
     }
   }
 
@@ -148,136 +142,453 @@ export function TasksView({ projectId }: TasksViewProps) {
     return {
       title: task.title,
       description: task.description || '',
+      status: task.status,
       priority: task.priority,
       severity: task.severity,
-      status: task.status,
-      dueDate: task.dueDate || '',
-      projectId: projectId || task.projectId || ''
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      projectId: task.projectId || ''
     }
   }
 
-  const selectedProject = projectId ? projects.find(p => p.id === projectId) : null
+  const viewModeButtons = [
+    { mode: 'grid' as ViewMode, icon: Grid3X3, label: 'Grid' },
+    { mode: 'list' as ViewMode, icon: List, label: 'List' },
+    { mode: 'table' as ViewMode, icon: Table, label: 'Table' },
+    { mode: 'kanban' as ViewMode, icon: Columns, label: 'Kanban' }
+  ]
+
+  const renderGridView = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredTasks.map((task) => (
+        <Card key={task.id} className={`cursor-pointer hover:shadow-lg transition-shadow border-l-4 ${getBorderColor(task.priority, task.severity)}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleTask(task.id)}
+                  className="p-0 h-6 w-6"
+                >
+                  {task.status === 'COMPLETED' ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                </Button>
+                <CardTitle className={`text-lg ${task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
+                  {task.title}
+                </CardTitle>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            {task.description && (
+              <p className="text-sm text-muted-foreground mt-2">{task.description}</p>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className={`${getStatusColor(task.status)} text-white`}>
+                  {getStatusLabel(task.status)}
+                </Badge>
+                <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                  <Flag className="mr-1 h-3 w-3" />
+                  {PRIORITY_LABELS[task.priority]}
+                </Badge>
+                <Badge variant="outline" className={getSeverityColor(task.severity)}>
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  {SEVERITY_LABELS[task.severity]}
+                </Badge>
+              </div>
+              {task.dueDate && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {task.projectId && !projectId && (
+                <div className="text-sm text-muted-foreground">
+                  Project: {projects.find(p => p.id === task.projectId)?.name || 'Unknown'}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+
+  const renderListView = () => (
+    <div className="space-y-3">
+      {filteredTasks.map((task) => (
+        <Card key={task.id} className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(task.priority, task.severity)}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleTask(task.id)}
+                  className="p-0 h-6 w-6 flex-shrink-0"
+                >
+                  {task.status === 'COMPLETED' ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-semibold text-lg truncate ${task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
+                    {task.title}
+                  </h3>
+                  {task.description && (
+                    <p className="text-sm text-muted-foreground truncate">{task.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className={`${getStatusColor(task.status)} text-white`}>
+                    {getStatusLabel(task.status)}
+                  </Badge>
+                  <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                    {PRIORITY_LABELS[task.priority]}
+                  </Badge>
+                  <Badge variant="outline" className={getSeverityColor(task.severity)}>
+                    {SEVERITY_LABELS[task.severity]}
+                  </Badge>
+                  {task.dueDate && (
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(task.dueDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+
+  const renderTableView = () => (
+    <Card>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b">
+              <tr>
+                <th className="text-left p-4 font-semibold">Task</th>
+                <th className="text-left p-4 font-semibold">Status</th>
+                <th className="text-left p-4 font-semibold">Priority</th>
+                <th className="text-left p-4 font-semibold">Severity</th>
+                <th className="text-left p-4 font-semibold">Due Date</th>
+                {!projectId && <th className="text-left p-4 font-semibold">Project</th>}
+                <th className="text-left p-4 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTasks.map((task) => (
+                <tr key={task.id} className="border-b hover:bg-muted/50">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleTask(task.id)}
+                        className="p-0 h-6 w-6"
+                      >
+                        {task.status === 'COMPLETED' ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-400" />
+                        )}
+                      </Button>
+                      <div>
+                        <span className={`font-medium ${task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
+                          {task.title}
+                        </span>
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">
+                            {task.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant="secondary" className={`${getStatusColor(task.status)} text-white`}>
+                      {getStatusLabel(task.status)}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                      {PRIORITY_LABELS[task.priority]}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant="outline" className={getSeverityColor(task.severity)}>
+                      {SEVERITY_LABELS[task.severity]}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    {task.dueDate ? (
+                      <span className="text-sm">
+                        {new Date(task.dueDate).toLocaleDateString()}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No due date</span>
+                    )}
+                  </td>
+                  {!projectId && (
+                    <td className="p-4">
+                      <span className="text-sm">
+                        {task.projectId ? (projects.find(p => p.id === task.projectId)?.name || 'Unknown') : 'No project'}
+                      </span>
+                    </td>
+                  )}
+                  <td className="p-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  const renderKanbanView = () => {
+    const statusColumns = [
+      { key: 'TODO', label: 'To Do', color: 'bg-gray-100 border-gray-300' },
+      { key: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 border-blue-300' },
+      { key: 'COMPLETED', label: 'Completed', color: 'bg-green-100 border-green-300' }
+    ]
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {statusColumns.map((column) => (
+          <div key={column.key} className={`rounded-lg border-2 ${column.color} p-4`}>
+            <h3 className="font-semibold mb-4 flex items-center justify-between">
+              {column.label}
+              <Badge variant="secondary">
+                {filteredTasks.filter(t => t.status === column.key).length}
+              </Badge>
+            </h3>
+            <div className="space-y-3">
+              {filteredTasks
+                .filter(task => task.status === column.key)
+                .map((task) => (
+                  <Card key={task.id} className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(task.priority, task.severity)}`}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-sm truncate">{task.title}</h4>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                              <Pencil className="mr-2 h-3 w-3" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-3 w-3" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+                      <div className="space-y-2">
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-xs`}>
+                            {PRIORITY_LABELS[task.priority]}
+                          </Badge>
+                          <Badge variant="outline" className={`${getSeverityColor(task.severity)} text-xs`}>
+                            {SEVERITY_LABELS[task.severity]}
+                          </Badge>
+                        </div>
+                        {task.dueDate && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {task.projectId && !projectId && (
+                          <div className="text-xs text-muted-foreground">
+                            {projects.find(p => p.id === task.projectId)?.name || 'Unknown'}
+                          </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleTask(task.id)}
+                          className="w-full h-6 text-xs"
+                        >
+                          {task.status === 'COMPLETED' ? 'Reopen' : 'Complete'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderCurrentView = () => {
+    switch (viewMode) {
+      case 'grid':
+        return renderGridView()
+      case 'list':
+        return renderListView()
+      case 'table':
+        return renderTableView()
+      case 'kanban':
+        return renderKanbanView()
+      default:
+        return renderGridView()
+    }
+  }
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {selectedProject ? `Tasks - ${selectedProject.name}` : 'Tasks'}
+          <h1 className="text-3xl font-bold tracking-tight">
+            {projectId ? 'Project Tasks' : 'Tasks'}
           </h1>
-          <p className="text-muted-foreground">Manage your tasks and track progress</p>
+          <p className="text-muted-foreground">
+            Manage your tasks and track their progress
+          </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Task
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex rounded-lg border p-1">
+            {viewModeButtons.map(({ mode, icon: Icon, label }) => (
+              <Button
+                key={mode}
+                variant={viewMode === mode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode(mode)}
+                className="h-8 px-3"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="sr-only">{label}</span>
+              </Button>
+            ))}
+          </div>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Task
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredTasks.map((task) => {
-          const project = !projectId && task.projectId ? projects.find(p => p.id === task.projectId) : null
-          return (
-            <Card 
-              key={task.id} 
-              className={`border-l-4 ${getBorderColor(task.priority, task.severity)} hover:shadow-md transition-shadow`}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      className="mt-1"
-                    >
-                      {task.status === 'COMPLETED' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </button>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className={`text-lg ${task.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
-                          {task.title}
-                        </CardTitle>
-                        <Badge variant="secondary" className={getPriorityColor(task.priority)}>
-                          <Flag className="h-3 w-3 mr-1" />
-                          {task.priority} - {PRIORITY_LABELS[task.priority]}
-                        </Badge>
-                        <Badge variant="secondary" className={getSeverityColor(task.severity)}>
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          {task.severity} - {SEVERITY_LABELS[task.severity]}
-                        </Badge>
-                      </div>
-                      <p className={`text-sm text-muted-foreground ${task.status === 'COMPLETED' ? 'line-through' : ''}`}>
-                        {task.description}
-                      </p>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
-                        onClick={() => setEditingTask(task)}
-                        className="flex items-center"
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="flex items-center text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-4">
-                    {task.dueDate && (
-                      <div className="flex items-center">
-                        <Calendar className="mr-1 h-3 w-3" />
-                        <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    {project && (
-                      <div className="flex items-center">
-                        <Clock className="mr-1 h-3 w-3" />
-                        <span>{project.name}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center">
-                    <span className="capitalize">{task.status.toLowerCase().replace('_', ' ')}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+      {filteredTasks.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <CheckSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Create your first task to get started
+            </p>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Task
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        renderCurrentView()
+      )}
 
       <CreateTaskModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateTask}
-        projects={projectId ? [] : projects}
+        projectId={projectId}
       />
 
-      <CreateTaskModal
-        open={!!editingTask}
-        onOpenChange={(open) => !open && setEditingTask(null)}
-        onSubmit={handleEditTask}
-        projects={projectId ? [] : projects}
-        initialData={editingTask ? getFormDataFromTask(editingTask) : undefined}
-      />
+      {editingTask && (
+        <CreateTaskModal
+          isOpen={true}
+          onClose={() => setEditingTask(null)}
+          onSubmit={handleEditTask}
+          initialData={getFormDataFromTask(editingTask)}
+          projectId={projectId}
+        />
+      )}
     </div>
   )
 } 
