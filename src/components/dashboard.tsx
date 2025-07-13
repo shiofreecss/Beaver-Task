@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -20,6 +20,10 @@ import { NotesView } from '@/components/notes/notes-view'
 import { HabitsView } from '@/components/habits/habits-view'
 import { PomodoroView } from '@/components/pomodoro/pomodoro-view'
 import { Sidebar } from '@/components/sidebar'
+import { useTaskStore } from '@/store/tasks'
+import { useProjectStore } from '@/store/projects'
+import { useHabitStore } from '@/store/habits'
+import { usePomodoroStore } from '@/store/pomodoro'
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -54,6 +58,61 @@ export function Dashboard() {
 }
 
 function DashboardOverview() {
+  const tasks = useTaskStore((state) => state.tasks)
+  const projects = useProjectStore((state) => state.projects)
+  const habits = useHabitStore((state) => state.habits)
+  const fetchHabits = useHabitStore((state) => state.fetchHabits)
+  const sessions = usePomodoroStore((state) => state.sessions)
+  const fetchSessions = usePomodoroStore((state) => state.fetchSessions)
+  const getTodayFocusTime = usePomodoroStore((state) => state.getTodayFocusTime)
+
+  useEffect(() => {
+    fetchHabits()
+    fetchSessions()
+  }, [fetchHabits, fetchSessions])
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const now = new Date()
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    
+    const totalTasks = tasks.length
+    const tasksLastWeek = tasks.filter(t => new Date(t.createdAt) < lastWeek).length
+    const tasksDiff = totalTasks - tasksLastWeek
+
+    const activeProjects = projects.filter(p => p.status === 'active').length
+    const activeProjectsLastWeek = projects.filter(
+      p => p.status === 'active' && new Date(p.createdAt) < lastWeek
+    ).length
+    const projectsDiff = activeProjects - activeProjectsLastWeek
+
+    const completedTasks = tasks.filter(t => t.status === 'COMPLETED')
+    const recentActivity = [...completedTasks]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 3)
+      .map(task => ({
+        type: 'completed',
+        title: task.title,
+        timestamp: new Date(task.updatedAt)
+      }))
+
+    // Get the highest streak from all habits
+    const maxStreak = habits.reduce((max, habit) => Math.max(max, habit.streak), 0)
+
+    // Get today's total focus time
+    const focusTime = getTodayFocusTime()
+
+    return {
+      totalTasks,
+      tasksDiff,
+      activeProjects,
+      projectsDiff,
+      recentActivity,
+      maxStreak,
+      focusTime
+    }
+  }, [tasks, projects, habits, getTodayFocusTime])
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -69,9 +128,9 @@ function DashboardOverview() {
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{stats.totalTasks}</div>
             <p className="text-xs text-muted-foreground">
-              +3 from last week
+              {stats.tasksDiff >= 0 ? '+' : ''}{stats.tasksDiff} from last week
             </p>
           </CardContent>
         </Card>
@@ -82,9 +141,9 @@ function DashboardOverview() {
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{stats.activeProjects}</div>
             <p className="text-xs text-muted-foreground">
-              +1 from last week
+              {stats.projectsDiff >= 0 ? '+' : ''}{stats.projectsDiff} from last week
             </p>
           </CardContent>
         </Card>
@@ -95,7 +154,7 @@ function DashboardOverview() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.maxStreak}</div>
             <p className="text-xs text-muted-foreground">
               days in a row
             </p>
@@ -108,7 +167,7 @@ function DashboardOverview() {
             <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.2h</div>
+            <div className="text-2xl font-bold">{stats.focusTime.toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">
               today
             </p>
@@ -125,27 +184,17 @@ function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Completed "Design homepage layout"</p>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
+              {stats.recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Completed "{activity.title}"</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimeAgo(activity.timestamp)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Started new project "Mobile App"</p>
-                  <p className="text-xs text-muted-foreground">4 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Maintained daily exercise habit</p>
-                  <p className="text-xs text-muted-foreground">1 day ago</p>
-                </div>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -191,4 +240,19 @@ function DashboardOverview() {
       </div>
     </div>
   )
+} 
+
+// Helper function to format timestamps
+function formatTimeAgo(date: Date): string {
+  const now = new Date()
+  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+  
+  if (diffInHours < 1) {
+    return 'just now'
+  } else if (diffInHours < 24) {
+    return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`
+  } else {
+    const days = Math.floor(diffInHours / 24)
+    return `${days} day${days === 1 ? '' : 's'} ago`
+  }
 } 

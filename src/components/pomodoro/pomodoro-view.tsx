@@ -13,24 +13,77 @@ import { Progress } from '@/components/ui/progress'
 
 type ViewMode = 'timer' | 'statistics' | 'history'
 
+type SessionType = 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK'
+
+interface SessionConfig {
+  duration: number
+  label: string
+  color: string
+}
+
+interface PomodoroSession {
+  id: string
+  duration: number
+  type: SessionType
+  taskId?: string | null
+  startTime: Date
+  endTime?: Date | null
+  completed: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export function PomodoroView() {
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
   const [isActive, setIsActive] = useState(false)
-  const [sessionType, setSessionType] = useState<'focus' | 'shortBreak' | 'longBreak'>('focus')
+  const [sessionType, setSessionType] = useState<SessionType>('FOCUS')
   const [completedSessions, setCompletedSessions] = useState(0)
   const [selectedTaskId, setSelectedTaskId] = useState<string>('')
-  const [pomodoroSessions, setPomodoroSessions] = useState<any[]>([])
+  const [pomodoroSessions, setPomodoroSessions] = useState<PomodoroSession[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('timer')
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentSession, setCurrentSession] = useState<PomodoroSession | null>(null)
   const { toast } = useToast()
 
   // Get tasks from the store
   const tasks = useTaskStore((state) => state.tasks)
   const projects = useProjectStore((state) => state.projects)
 
-  const sessionTypes = {
-    focus: { duration: 25 * 60, label: 'Focus Time', color: 'bg-red-500' },
-    shortBreak: { duration: 5 * 60, label: 'Short Break', color: 'bg-green-500' },
-    longBreak: { duration: 15 * 60, label: 'Long Break', color: 'bg-blue-500' }
+  const sessionTypes: Record<SessionType, SessionConfig> = {
+    FOCUS: { duration: 25 * 60, label: 'Focus Time', color: 'bg-red-500' },
+    SHORT_BREAK: { duration: 5 * 60, label: 'Short Break', color: 'bg-green-500' },
+    LONG_BREAK: { duration: 15 * 60, label: 'Long Break', color: 'bg-blue-500' }
+  }
+
+  // Fetch sessions on component mount
+  useEffect(() => {
+    fetchSessions()
+  }, [])
+
+  const fetchSessions = async () => {
+    try {
+      const response = await fetch('/api/pomodoro')
+      if (!response.ok) throw new Error('Failed to fetch sessions')
+      const data = await response.json()
+      setPomodoroSessions(data)
+      
+      // Calculate completed sessions for today
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const todaysSessions = data.filter((s: any) => 
+        new Date(s.createdAt) >= today && s.type === 'FOCUS' && s.completed
+      )
+      setCompletedSessions(todaysSessions.length)
+    } catch (error) {
+      console.error('Error fetching sessions:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load sessions. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -49,54 +102,132 @@ export function PomodoroView() {
     }
   }, [isActive, timeLeft])
 
-  const handleSessionComplete = () => {
+  const handleSessionComplete = async () => {
     setIsActive(false)
     
-    const session = {
-      id: Date.now().toString(),
-      type: sessionType,
-      duration: sessionTypes[sessionType].duration,
-      taskId: selectedTaskId || null,
-      completedAt: new Date().toISOString()
-    }
-    
-    setPomodoroSessions(prev => [session, ...prev])
-    
-    if (sessionType === 'focus') {
-      setCompletedSessions(prev => prev + 1)
+    try {
+      // Mark current session as completed
+      if (currentSession) {
+        const response = await fetch('/api/pomodoro', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentSession.id,
+            completed: true
+          })
+        })
+
+        if (!response.ok) throw new Error('Failed to complete session')
+        
+        const completedSession = await response.json()
+        setPomodoroSessions(prev => [completedSession, ...prev.filter(s => s.id !== completedSession.id)])
+        
+        if (sessionType === 'FOCUS') {
+          setCompletedSessions(prev => prev + 1)
+        }
+      }
+
+      if (sessionType === 'FOCUS') {
+        toast({
+          title: "Focus session completed!",
+          description: "Great work! Time for a break.",
+        })
+        
+        // Auto-switch to break
+        const nextSession = completedSessions % 4 === 3 ? 'LONG_BREAK' : 'SHORT_BREAK'
+        setSessionType(nextSession)
+        setTimeLeft(sessionTypes[nextSession].duration)
+      } else {
+        toast({
+          title: "Break completed!",
+          description: "Ready for another focus session?",
+        })
+        setSessionType('FOCUS')
+        setTimeLeft(sessionTypes.FOCUS.duration)
+      }
+
+      setCurrentSession(null)
+    } catch (error) {
+      console.error('Error completing session:', error)
       toast({
-        title: "Focus session completed!",
-        description: "Great work! Time for a break.",
+        title: "Error",
+        description: "Failed to complete session. Please try again.",
+        variant: "destructive"
       })
+    }
+  }
+
+  const startTimer = async () => {
+    try {
+      // Create new session
+      const response = await fetch('/api/pomodoro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          duration: Math.floor(sessionTypes[sessionType].duration / 60), // Convert seconds to minutes
+          type: sessionType,
+          taskId: selectedTaskId || null
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to start session')
       
-      // Auto-switch to break
-      const nextSession = completedSessions % 4 === 3 ? 'longBreak' : 'shortBreak'
-      setSessionType(nextSession)
-      setTimeLeft(sessionTypes[nextSession].duration)
-    } else {
+      const newSession = await response.json()
+      setPomodoroSessions(prev => [newSession, ...prev])
+      setCurrentSession(newSession)
+      setIsActive(true)
+    } catch (error) {
+      console.error('Error starting session:', error)
       toast({
-        title: "Break completed!",
-        description: "Ready for another focus session?",
+        title: "Error",
+        description: "Failed to start session. Please try again.",
+        variant: "destructive"
       })
-      setSessionType('focus')
-      setTimeLeft(sessionTypes.focus.duration)
     }
   }
 
-  const startTimer = () => {
-    setIsActive(true)
-  }
-
-  const pauseTimer = () => {
+  const pauseTimer = async () => {
     setIsActive(false)
+    
+    if (currentSession) {
+      try {
+        const response = await fetch('/api/pomodoro', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentSession.id,
+            completed: false
+          })
+        })
+
+        if (!response.ok) throw new Error('Failed to pause session')
+        
+        const updatedSession = await response.json()
+        setPomodoroSessions(prev => [updatedSession, ...prev.filter(s => s.id !== updatedSession.id)])
+        setCurrentSession(null)
+      } catch (error) {
+        console.error('Error pausing session:', error)
+        toast({
+          title: "Error",
+          description: "Failed to pause session. Please try again.",
+          variant: "destructive"
+        })
+      }
+    }
   }
 
   const resetTimer = () => {
     setIsActive(false)
     setTimeLeft(sessionTypes[sessionType].duration)
+    if (currentSession) {
+      pauseTimer()
+    }
   }
 
-  const switchSession = (type: 'focus' | 'shortBreak' | 'longBreak') => {
+  const switchSession = (type: 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK') => {
+    if (currentSession) {
+      pauseTimer()
+    }
     setIsActive(false)
     setSessionType(type)
     setTimeLeft(sessionTypes[type].duration)
@@ -236,12 +367,12 @@ export function PomodoroView() {
             <label className="block text-sm font-medium mb-2">
               Select Task (Optional)
             </label>
-            <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
+            <Select value={selectedTaskId || "none"} onValueChange={(value) => setSelectedTaskId(value === "none" ? "" : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a task to work on" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific task</SelectItem>
+                <SelectItem value="none">No specific task</SelectItem>
                 {tasks.map((task) => (
                   <SelectItem key={task.id} value={task.id}>
                     {task.title}
@@ -269,10 +400,10 @@ export function PomodoroView() {
   )
 
   const renderStatisticsView = () => {
-    const focusSessions = pomodoroSessions.filter(s => s.type === 'focus')
-    const totalFocusTime = focusSessions.length * 25 // minutes
+    const focusSessions = pomodoroSessions.filter(s => s.type === 'FOCUS' && s.completed)
+    const totalFocusTime = focusSessions.reduce((total, session) => total + session.duration, 0) // already in minutes
     const todaysSessions = pomodoroSessions.filter(s => 
-      new Date(s.completedAt).toDateString() === new Date().toDateString()
+      new Date(s.createdAt).toDateString() === new Date().toDateString() && s.completed
     )
 
     return (
@@ -296,7 +427,7 @@ export function PomodoroView() {
           <CardContent>
             <div className="text-2xl font-bold">{todaysSessions.length}</div>
             <p className="text-xs text-muted-foreground">
-              {todaysSessions.filter(s => s.type === 'focus').length} focus sessions
+              {todaysSessions.filter(s => s.type === 'FOCUS').length} focus sessions
             </p>
           </CardContent>
         </Card>
@@ -389,7 +520,7 @@ export function PomodoroView() {
                         {sessionTypes[session.type].label}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(session.completedAt).toLocaleString()}
+                        {new Date(session.createdAt).toLocaleString()}
                       </div>
                     </div>
                     {session.taskId && (
@@ -458,7 +589,13 @@ export function PomodoroView() {
         </div>
       </div>
 
-      {renderCurrentView()}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        renderCurrentView()
+      )}
     </div>
   )
 } 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,49 +19,8 @@ import { useProjectStore } from '@/store/projects'
 type ViewMode = 'grid' | 'list' | 'table'
 
 export function NotesView() {
-  const [notes, setNotes] = useState([
-    {
-      id: '1',
-      title: 'Project Planning Meeting Notes',
-      content: 'Discussed Q4 roadmap, key deliverables, and team assignments. Need to follow up on resource allocation and timeline adjustments.',
-      tags: ['meeting', 'planning', 'q4'],
-      projectId: 'proj-1',
-      projectName: 'Website Redesign',
-      createdAt: '2024-01-15T10:30:00Z',
-      updatedAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      title: 'Research Findings',
-      content: 'User research indicates need for better navigation and improved mobile experience. Key insights from 15 user interviews.',
-      tags: ['research', 'ux', 'mobile'],
-      projectId: 'proj-1',
-      projectName: 'Website Redesign',
-      createdAt: '2024-01-14T14:20:00Z',
-      updatedAt: '2024-01-14T14:20:00Z'
-    },
-    {
-      id: '3',
-      title: 'Technical Architecture',
-      content: 'Outlined system architecture for new features. Considering microservices approach for better scalability.',
-      tags: ['technical', 'architecture', 'microservices'],
-      projectId: 'proj-2',
-      projectName: 'API Development',
-      createdAt: '2024-01-13T09:15:00Z',
-      updatedAt: '2024-01-13T09:15:00Z'
-    },
-    {
-      id: '4',
-      title: 'Marketing Strategy Ideas',
-      content: 'Brainstormed ideas for Q1 marketing campaign. Focus on social media engagement and content marketing.',
-      tags: ['marketing', 'strategy', 'social-media'],
-      projectId: null,
-      projectName: null,
-      createdAt: '2024-01-12T16:45:00Z',
-      updatedAt: '2024-01-12T16:45:00Z'
-    }
-  ])
-
+  const [notes, setNotes] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingNote, setEditingNote] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -70,54 +29,108 @@ export function NotesView() {
   // Get projects from store
   const projects = useProjectStore((state) => state.projects)
 
-  const handleCreateNote = (noteData: any) => {
-    const newNote = {
-      id: Date.now().toString(),
-      title: noteData.title,
-      content: noteData.content,
-      tags: noteData.tags ? noteData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean) : [],
-      projectId: noteData.projectId || null,
-      projectName: noteData.projectId ? (projects.find(p => p.id === noteData.projectId)?.name || null) : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+  // Fetch notes on component mount
+  useEffect(() => {
+    fetchNotes()
+  }, [])
+
+  const fetchNotes = async () => {
+    try {
+      const response = await fetch('/api/notes')
+      if (!response.ok) throw new Error('Failed to fetch notes')
+      const data = await response.json()
+      setNotes(data)
+    } catch (error) {
+      console.error('Error fetching notes:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load notes. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
     }
-    setNotes([newNote, ...notes])
-    setShowCreateModal(false)
-    toast({
-      title: "Note created",
-      description: `${noteData.title} has been created successfully.`,
-    })
   }
 
-  const handleEditNote = (noteData: any) => {
+  const handleCreateNote = async (noteData: any) => {
+    try {
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData)
+      })
+
+      if (!response.ok) throw new Error('Failed to create note')
+      
+      const newNote = await response.json()
+      setNotes([newNote, ...notes])
+      setShowCreateModal(false)
+      toast({
+        title: "Note created",
+        description: `${noteData.title} has been created successfully.`,
+      })
+    } catch (error) {
+      console.error('Error creating note:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create note. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleEditNote = async (noteData: any) => {
     if (!editingNote) return
-    
-    setNotes(notes.map(note => 
-      note.id === editingNote.id 
-        ? {
-            ...note,
-            title: noteData.title,
-            content: noteData.content,
-            tags: noteData.tags ? noteData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean) : [],
-            projectId: noteData.projectId || null,
-            projectName: noteData.projectId ? (projects.find(p => p.id === noteData.projectId)?.name || null) : null,
-            updatedAt: new Date().toISOString()
-          }
-        : note
-    ))
-    setEditingNote(null)
-    toast({
-      title: "Note updated",
-      description: `${noteData.title} has been updated successfully.`,
-    })
+
+    try {
+      const response = await fetch('/api/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingNote.id, ...noteData })
+      })
+
+      if (!response.ok) throw new Error('Failed to update note')
+      
+      const updatedNote = await response.json()
+      setNotes(notes.map(note => 
+        note.id === editingNote.id ? updatedNote : note
+      ))
+      setEditingNote(null)
+      toast({
+        title: "Note updated",
+        description: `${noteData.title} has been updated successfully.`,
+      })
+    } catch (error) {
+      console.error('Error updating note:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update note. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(notes.filter(note => note.id !== noteId))
-    toast({
-      title: "Note deleted",
-      description: "The note has been deleted successfully.",
-    })
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const response = await fetch(`/api/notes?id=${noteId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete note')
+      
+      setNotes(notes.filter(note => note.id !== noteId))
+      toast({
+        title: "Note deleted",
+        description: "The note has been deleted successfully.",
+      })
+    } catch (error) {
+      console.error('Error deleting note:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete note. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   // Filter notes based on search term
@@ -401,7 +414,11 @@ export function NotesView() {
         />
       </div>
 
-      {filteredNotes.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : filteredNotes.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
