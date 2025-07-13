@@ -24,6 +24,7 @@ interface CreateProjectModalProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (data: any) => void
   organizations: Organization[]
+  organizationId?: string
   initialData?: {
     name: string
     description: string
@@ -34,21 +35,31 @@ interface CreateProjectModalProps {
   }
 }
 
-export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations = [], initialData }: CreateProjectModalProps) {
+export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations = [], organizationId, initialData }: CreateProjectModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     status: 'ACTIVE',
     dueDate: '',
-    organizationId: 'none',
+    organizationId: organizationId || 'none',
     color: 'bg-blue-500'
   })
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData)
+    } else {
+      // Reset form but keep organizationId if provided
+      setFormData({ 
+        name: '', 
+        description: '', 
+        status: 'ACTIVE', 
+        dueDate: '', 
+        organizationId: organizationId || 'none', 
+        color: 'bg-blue-500' 
+      })
     }
-  }, [initialData])
+  }, [initialData, organizationId])
 
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Blue' },

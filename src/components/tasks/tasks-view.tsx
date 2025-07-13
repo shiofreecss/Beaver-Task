@@ -574,18 +574,20 @@ export function TasksView({ projectId }: TasksViewProps) {
       )}
 
       <CreateTaskModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
         onSubmit={handleCreateTask}
+        projects={projects}
         projectId={projectId}
       />
 
       {editingTask && (
         <CreateTaskModal
-          isOpen={true}
-          onClose={() => setEditingTask(null)}
+          open={true}
+          onOpenChange={(open) => !open && setEditingTask(null)}
           onSubmit={handleEditTask}
           initialData={getFormDataFromTask(editingTask)}
+          projects={projects}
           projectId={projectId}
         />
       )}

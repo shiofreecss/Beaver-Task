@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/use-toast"
 import { Badge } from '@/components/ui/badge'
+import { useProjectStore } from '@/store/projects'
 
 type ViewMode = 'grid' | 'list' | 'table'
 
@@ -66,14 +67,17 @@ export function NotesView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
+  // Get projects from store
+  const projects = useProjectStore((state) => state.projects)
+
   const handleCreateNote = (noteData: any) => {
     const newNote = {
       id: Date.now().toString(),
       title: noteData.title,
       content: noteData.content,
-      tags: noteData.tags || [],
+      tags: noteData.tags ? noteData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean) : [],
       projectId: noteData.projectId || null,
-      projectName: noteData.projectName || null,
+      projectName: noteData.projectId ? (projects.find(p => p.id === noteData.projectId)?.name || null) : null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -94,9 +98,9 @@ export function NotesView() {
             ...note,
             title: noteData.title,
             content: noteData.content,
-            tags: noteData.tags || [],
+            tags: noteData.tags ? noteData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean) : [],
             projectId: noteData.projectId || null,
-            projectName: noteData.projectName || null,
+            projectName: noteData.projectId ? (projects.find(p => p.id === noteData.projectId)?.name || null) : null,
             updatedAt: new Date().toISOString()
           }
         : note
@@ -423,17 +427,24 @@ export function NotesView() {
       )}
 
       <CreateNoteModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
         onSubmit={handleCreateNote}
+        projects={projects}
       />
 
       {editingNote && (
         <CreateNoteModal
-          isOpen={true}
-          onClose={() => setEditingNote(null)}
+          open={true}
+          onOpenChange={(open) => !open && setEditingNote(null)}
           onSubmit={handleEditNote}
-          initialData={editingNote}
+          initialData={{
+            title: editingNote.title,
+            content: editingNote.content,
+            tags: editingNote.tags.join(', '),
+            projectId: editingNote.projectId || ''
+          }}
+          projects={projects}
         />
       )}
     </div>

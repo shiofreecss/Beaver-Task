@@ -558,18 +558,20 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
       )}
 
       <CreateProjectModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
         onSubmit={handleCreateProject}
+        organizations={organizations}
         organizationId={organizationId}
       />
 
       {editingProject && (
         <CreateProjectModal
-          isOpen={true}
-          onClose={() => setEditingProject(null)}
+          open={true}
+          onOpenChange={(open) => !open && setEditingProject(null)}
           onSubmit={handleEditProject}
           initialData={editingProject}
+          organizations={organizations}
           organizationId={organizationId}
         />
       )}

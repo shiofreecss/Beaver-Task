@@ -363,15 +363,15 @@ export function OrganizationsView() {
       )}
 
       <CreateOrganizationModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
         onSubmit={handleCreateOrganization}
       />
 
       {editingOrg && (
         <CreateOrganizationModal
-          isOpen={true}
-          onClose={() => setEditingOrg(null)}
+          open={true}
+          onOpenChange={(open) => !open && setEditingOrg(null)}
           onSubmit={handleEditOrganization}
           initialData={editingOrg}
         />

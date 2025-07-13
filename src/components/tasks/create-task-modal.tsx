@@ -35,10 +35,11 @@ interface CreateTaskModalProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (data: FormData) => void
   projects: Project[]
+  projectId?: string
   initialData?: FormData
 }
 
-export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], initialData }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], projectId, initialData }: CreateTaskModalProps) {
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -46,7 +47,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
     severity: 'S1',
     status: 'TODO',
     dueDate: '',
-    projectId: ''
+    projectId: projectId || ''
   })
 
   useEffect(() => {
@@ -60,10 +61,10 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
         severity: 'S1',
         status: 'TODO',
         dueDate: '',
-        projectId: ''
+        projectId: projectId || ''
       })
     }
-  }, [initialData])
+  }, [initialData, projectId])
 
   const priorityOptions = Object.entries(PRIORITY_LABELS).map(([value, label]) => ({
     value,
