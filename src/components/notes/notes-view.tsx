@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search, Tag, MoreVertical, Pencil, Trash2, FolderKanban, Grid3X3, List, Table, FileText } from 'lucide-react'
 import { CreateNoteModal } from '@/components/notes/create-note-modal'
+import { NotePreviewModal } from '@/components/notes/note-preview-modal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,7 @@ export function NotesView() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingNote, setEditingNote] = useState<NoteWithProject | null>(null)
+  const [previewNote, setPreviewNote] = useState<NoteWithProject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
@@ -151,13 +153,21 @@ export function NotesView() {
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredNotes.map((note) => (
-        <Card key={note.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+        <Card 
+          key={note.id} 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setPreviewNote(note)}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg truncate">{note.title}</CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => e.stopPropagation()} // Prevent card click when clicking menu
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -211,7 +221,11 @@ export function NotesView() {
   const renderListView = () => (
     <div className="space-y-3">
       {filteredNotes.map((note) => (
-        <Card key={note.id} className="cursor-pointer hover:shadow-md transition-shadow">
+        <Card 
+          key={note.id} 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setPreviewNote(note)}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -249,7 +263,11 @@ export function NotesView() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => e.stopPropagation()} // Prevent card click when clicking menu
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -466,6 +484,21 @@ export function NotesView() {
           projects={projects}
         />
       )}
+
+      <NotePreviewModal
+        note={previewNote}
+        isOpen={!!previewNote}
+        onClose={() => setPreviewNote(null)}
+        onEdit={(noteData) => {
+          if (previewNote) {
+            handleEditNote({
+              ...noteData,
+              projectId: previewNote.projectId || 'none'
+            })
+          }
+          setPreviewNote(null)
+        }}
+      />
     </div>
   )
 } 
