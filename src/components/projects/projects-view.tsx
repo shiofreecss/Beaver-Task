@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight } from 'lucide-react'
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import {
   DropdownMenu,
@@ -12,57 +12,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/use-toast"
+import { useProjectStore } from '@/store/projects'
+import { useTaskStore } from '@/store/tasks'
+import { useOrganizationStore } from '@/store/organizations'
+import { TasksView } from '@/components/tasks/tasks-view'
 
-export function ProjectsView() {
-  const [projects, setProjects] = useState([
-    {
-      id: '1',
-      name: 'Website Redesign',
-      description: 'Complete overhaul of company website',
-      status: 'In Progress',
-      dueDate: '2024-02-15',
-      progress: 65,
-      color: 'bg-blue-500'
-    },
-    {
-      id: '2',
-      name: 'Mobile App Development',
-      description: 'Native iOS and Android application',
-      status: 'Planning',
-      dueDate: '2024-03-30',
-      progress: 25,
-      color: 'bg-green-500'
-    },
-    {
-      id: '3',
-      name: 'Marketing Campaign',
-      description: 'Q1 digital marketing strategy',
-      status: 'Active',
-      dueDate: '2024-01-31',
-      progress: 80,
-      color: 'bg-purple-500'
-    }
-  ])
+interface ProjectsViewProps {
+  organizationId?: string
+}
 
+export function ProjectsView({ organizationId }: ProjectsViewProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
 
-  const mockOrganizations = [
-    { id: '1', name: 'Acme Corporation' },
-    { id: '2', name: 'Personal Projects' }
-  ]
+  // Get projects, tasks, and organizations from stores
+  const projects = useProjectStore((state) => state.projects)
+  const addProject = useProjectStore((state) => state.addProject)
+  const updateProject = useProjectStore((state) => state.updateProject)
+  const deleteProject = useProjectStore((state) => state.deleteProject)
+  const tasks = useTaskStore((state) => state.tasks)
+  const organizations = useOrganizationStore((state) => state.organizations)
+
+  // Filter projects by organization if organizationId is provided
+  const filteredProjects = organizationId 
+    ? projects.filter(project => project.organizationId === organizationId)
+    : projects
 
   const handleCreateProject = (projectData: any) => {
-    const newProject = {
-      id: Date.now().toString(),
+    addProject({
       name: projectData.name,
       description: projectData.description,
       status: projectData.status,
       dueDate: projectData.dueDate,
+      color: projectData.color,
       progress: 0,
-      color: projectData.color
-    }
-    setProjects(prev => [...prev, newProject])
+      organizationId: organizationId || projectData.organizationId
+    })
     setShowCreateModal(false)
     toast({
       title: "Project created",
@@ -71,18 +57,16 @@ export function ProjectsView() {
   }
 
   const handleEditProject = (projectData: any) => {
-    setProjects(prev => prev.map(project => 
-      project.id === editingProject.id 
-        ? { 
-            ...project, 
-            name: projectData.name,
-            description: projectData.description,
-            status: projectData.status,
-            dueDate: projectData.dueDate,
-            color: projectData.color
-          }
-        : project
-    ))
+    if (!editingProject) return
+    
+    updateProject(editingProject.id, {
+      name: projectData.name,
+      description: projectData.description,
+      status: projectData.status,
+      dueDate: projectData.dueDate,
+      color: projectData.color,
+      organizationId: organizationId || projectData.organizationId
+    })
     setEditingProject(null)
     toast({
       title: "Project updated",
@@ -91,27 +75,60 @@ export function ProjectsView() {
   }
 
   const handleDeleteProject = (projectId: string) => {
-    const projectToDelete = projects.find(project => project.id === projectId)
-    if (!projectToDelete) return
-
-    // Check if project has tasks or notes before deletion
-    // This would need to be replaced with actual data check
-    const hasDependencies = false
+    // Check if project has tasks
+    const hasTasks = tasks.some(task => task.projectId === projectId)
     
-    if (hasDependencies) {
+    if (hasTasks) {
       toast({
         title: "Cannot delete project",
-        description: "Please remove all tasks and notes from this project before deleting.",
+        description: "Please remove or reassign all tasks before deleting this project.",
         variant: "destructive"
       })
       return
     }
     
-    setProjects(prev => prev.filter(project => project.id !== projectId))
+    deleteProject(projectId)
+    setSelectedProjectId(null)
     toast({
       title: "Project deleted",
       description: "The project has been deleted successfully.",
     })
+  }
+
+  // Get task count for a project
+  const getTaskCount = (projectId: string) => {
+    return tasks.filter(task => task.projectId === projectId).length
+  }
+
+  // Get completion percentage for a project
+  const getCompletionPercentage = (projectId: string) => {
+    const projectTasks = tasks.filter(task => task.projectId === projectId)
+    if (projectTasks.length === 0) return 0
+    
+    const completedTasks = projectTasks.filter(task => task.status === 'COMPLETED')
+    return Math.round((completedTasks.length / projectTasks.length) * 100)
+  }
+
+  if (selectedProjectId) {
+    const selectedProject = projects.find(project => project.id === selectedProjectId)
+    if (!selectedProject) return null
+
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          {organizationId && (
+            <>
+              <Button variant="ghost" onClick={() => setSelectedProjectId(null)}>
+                Projects
+              </Button>
+              <ChevronRight className="h-4 w-4" />
+              <span className="font-semibold">{selectedProject.name}</span>
+            </>
+          )}
+        </div>
+        <TasksView projectId={selectedProjectId} />
+      </div>
+    )
   }
 
   return (
@@ -128,35 +145,45 @@ export function ProjectsView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
-          <Card key={project.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 rounded-lg ${project.color} flex items-center justify-center`}>
-                    <Calendar className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
+        {filteredProjects.map((project) => {
+          const completionPercentage = getCompletionPercentage(project.id)
+          return (
+            <Card 
+              key={project.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setSelectedProjectId(project.id)}
+            >
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl" style={{ color: project.color }}>
+                    {project.name}
+                  </CardTitle>
+                  {project.description && (
                     <CardDescription>{project.description}</CardDescription>
-                  </div>
+                  )}
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem 
-                      onClick={() => setEditingProject(project)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingProject(project)
+                      }}
                       className="flex items-center"
                     >
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => handleDeleteProject(project.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteProject(project.id)
+                      }}
                       className="flex items-center text-red-600"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
@@ -164,51 +191,68 @@ export function ProjectsView() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                    <span>Progress</span>
-                    <span>{project.progress}%</span>
+              </CardHeader>
+
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Progress</span>
+                      <span>{completionPercentage}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary" 
+                        style={{ width: `${completionPercentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-full">
-                    <div
-                      className={`h-full rounded-full ${project.color}`}
-                      style={{ width: `${project.progress}%` }}
-                    />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">{getTaskCount(project.id)}</p>
+                      <p className="text-sm text-muted-foreground">Tasks</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground capitalize">
+                        {project.status.toLowerCase().replace('_', ' ')}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    {project.dueDate && (
+                      <div className="flex items-center">
+                        <Calendar className="mr-1 h-3 w-3" />
+                        <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <Users className="mr-1 h-3 w-3" />
+                      <span>1 Member</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Calendar className="mr-1 h-3 w-3" />
-                    <span>Due {project.dueDate}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Users className="mr-1 h-3 w-3" />
-                    <span>{project.status}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       <CreateProjectModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onSubmit={handleCreateProject}
-        organizations={mockOrganizations}
+        organizations={organizations}
+        initialData={undefined}
       />
 
       <CreateProjectModal
         open={!!editingProject}
         onOpenChange={(open) => !open && setEditingProject(null)}
         onSubmit={handleEditProject}
-        organizations={mockOrganizations}
+        organizations={organizations}
         initialData={editingProject}
       />
     </div>

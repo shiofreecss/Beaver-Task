@@ -41,6 +41,7 @@ model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
+  password      String
   emailVerified DateTime?
   image         String?
   settings      String?
@@ -102,7 +103,8 @@ model Task {
   title       String
   description String?
   status      String    @default("TODO")
-  priority    String    @default("MEDIUM")
+  priority    String    @default("P1")
+  severity    String    @default("S1")
   dueDate     DateTime?
   completed   Boolean   @default(false)
   projectId   String?

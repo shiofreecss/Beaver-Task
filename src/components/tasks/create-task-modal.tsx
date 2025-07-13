@@ -13,32 +13,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PRIORITY_LABELS, SEVERITY_LABELS, type PriorityLevel, type SeverityLevel } from '@/store/tasks'
 
 interface Project {
   id: string
   name: string
 }
 
+interface FormData {
+  title: string
+  description: string
+  priority: PriorityLevel
+  severity: SeverityLevel
+  status: string
+  dueDate: string
+  projectId: string
+}
+
 interface CreateTaskModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: FormData) => void
   projects: Project[]
-  initialData?: {
-    title: string
-    description: string
-    priority: string
-    status: string
-    dueDate: string
-    projectId: string
-  }
+  initialData?: FormData
 }
 
 export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], initialData }: CreateTaskModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
-    priority: 'MEDIUM',
+    priority: 'P1',
+    severity: 'S1',
     status: 'TODO',
     dueDate: '',
     projectId: ''
@@ -47,14 +52,28 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
   useEffect(() => {
     if (initialData) {
       setFormData(initialData)
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'P1',
+        severity: 'S1',
+        status: 'TODO',
+        dueDate: '',
+        projectId: ''
+      })
     }
   }, [initialData])
 
-  const priorityOptions = [
-    { value: 'LOW', label: 'Low' },
-    { value: 'MEDIUM', label: 'Medium' },
-    { value: 'HIGH', label: 'High' }
-  ]
+  const priorityOptions = Object.entries(PRIORITY_LABELS).map(([value, label]) => ({
+    value,
+    label: `${value} - ${label}`
+  }))
+
+  const severityOptions = Object.entries(SEVERITY_LABELS).map(([value, label]) => ({
+    value,
+    label: `${value} - ${label}`
+  }))
 
   const statusOptions = [
     { value: 'TODO', label: 'To Do' },
@@ -67,13 +86,14 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
     if (formData.title.trim()) {
       onSubmit(formData)
       if (!initialData) {
-        setFormData({ 
-          title: '', 
-          description: '', 
-          priority: 'MEDIUM', 
-          status: 'TODO', 
-          dueDate: '', 
-          projectId: '' 
+        setFormData({
+          title: '',
+          description: '',
+          priority: 'P1',
+          severity: 'S1',
+          status: 'TODO',
+          dueDate: '',
+          projectId: ''
         })
       }
     }
@@ -81,11 +101,10 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -104,13 +123,14 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Enter task description"
+              rows={4}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
+              <Select value={formData.priority} onValueChange={(value: PriorityLevel) => setFormData(prev => ({ ...prev, priority: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -124,6 +144,24 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="severity">Severity</Label>
+              <Select value={formData.severity} onValueChange={(value: SeverityLevel) => setFormData(prev => ({ ...prev, severity: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select severity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {severityOptions.map((severity) => (
+                    <SelectItem key={severity.value} value={severity.value}>
+                      {severity.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
@@ -139,9 +177,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due Date</Label>
               <Input
@@ -151,7 +187,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
                 onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
               />
             </div>
+          </div>
 
+          {projects.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="project">Project</Label>
               <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}>
@@ -168,10 +206,14 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], i
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">

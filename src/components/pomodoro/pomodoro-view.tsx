@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Play, Pause, RotateCcw, Settings, Timer, CheckCircle2, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useTaskStore } from '@/store/tasks'
+import { useProjectStore } from '@/store/projects'
 
 export function PomodoroView() {
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
@@ -16,18 +18,15 @@ export function PomodoroView() {
   const [pomodoroSessions, setPomodoroSessions] = useState<any[]>([])
   const { toast } = useToast()
 
+  // Get tasks from the store
+  const tasks = useTaskStore((state) => state.tasks)
+  const projects = useProjectStore((state) => state.projects)
+
   const sessionTypes = {
     focus: { duration: 25 * 60, label: 'Focus Time', color: 'bg-red-500' },
     shortBreak: { duration: 5 * 60, label: 'Short Break', color: 'bg-green-500' },
     longBreak: { duration: 15 * 60, label: 'Long Break', color: 'bg-blue-500' }
   }
-
-  const mockTasks = [
-    { id: '1', title: 'Design homepage layout', project: 'Website Redesign' },
-    { id: '2', title: 'Write API documentation', project: 'Mobile App Development' },
-    { id: '3', title: 'Research competitors', project: 'Marketing Campaign' },
-    { id: '4', title: 'Update documentation', project: 'Website Redesign' }
-  ]
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
@@ -61,9 +60,10 @@ export function PomodoroView() {
     setPomodoroSessions(prev => [...prev, session])
 
     // Show completion toast
+    const selectedTask = tasks.find(t => t.id === selectedTaskId)
     toast({
       title: "Session Complete! 🎉",
-      description: `${sessionTypes[sessionType].label} completed${selectedTaskId ? ` for ${mockTasks.find(t => t.id === selectedTaskId)?.title}` : ''}`,
+      description: `${sessionTypes[sessionType].label} completed${selectedTask ? ` for ${selectedTask.title}` : ''}`,
     })
 
     if (sessionType === 'focus') {
@@ -81,10 +81,11 @@ export function PomodoroView() {
   const toggleTimer = () => {
     if (!isActive) {
       // Starting a new session
-      if (sessionType === 'focus' && selectedTaskId) {
+      const selectedTask = tasks.find(t => t.id === selectedTaskId)
+      if (sessionType === 'focus' && selectedTask) {
         toast({
           title: "Session Started! 🔥",
-          description: `Focus session started for ${mockTasks.find(t => t.id === selectedTaskId)?.title}`,
+          description: `Focus session started for ${selectedTask.title}`,
         })
       } else if (sessionType === 'focus') {
         toast({
@@ -126,13 +127,14 @@ export function PomodoroView() {
 
   const progress = ((sessionTypes[sessionType].duration - timeLeft) / sessionTypes[sessionType].duration) * 100
 
-  const todaysSessions = [
-    { type: 'focus', completed: true, startTime: '09:00' },
-    { type: 'shortBreak', completed: true, startTime: '09:25' },
-    { type: 'focus', completed: true, startTime: '09:30' },
-    { type: 'shortBreak', completed: true, startTime: '09:55' },
-    { type: 'focus', completed: false, startTime: '10:00' },
-  ]
+  // Get task with project info
+  const getTaskWithProject = (task: any) => {
+    const project = task.projectId ? projects.find(p => p.id === task.projectId) : null
+    return {
+      ...task,
+      projectName: project?.name || 'No Project'
+    }
+  }
 
   return (
     <div className="p-6">
@@ -187,9 +189,9 @@ export function PomodoroView() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No specific task</SelectItem>
-                      {mockTasks.map((task) => (
+                      {tasks.map((task) => (
                         <SelectItem key={task.id} value={task.id}>
-                          {task.title}
+                          {task.title} {task.projectId && `(${getTaskWithProject(task).projectName})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -265,28 +267,32 @@ export function PomodoroView() {
                 )}
               </div>
 
-              {/* Session Counter */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Completed Sessions Today</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{completedSessions}</p>
+              {/* Completed Sessions Counter */}
+              <div className="text-center mt-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Completed Sessions Today
+                </p>
+                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {completedSessions}
+                </span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Stats and History */}
-        <div className="space-y-6">
-          {/* Today's Sessions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-                Today's Sessions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {todaysSessions.map((session, index) => (
+        {/* Today's Sessions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CheckCircle2 className="mr-2 h-5 w-5" />
+              Today's Sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {pomodoroSessions.map((session, index) => {
+                const task = session.taskId ? tasks.find(t => t.id === session.taskId) : null
+                return (
                   <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                     <div className="flex items-center">
                       <div className={`w-2 h-2 rounded-full mr-3 ${
@@ -296,47 +302,48 @@ export function PomodoroView() {
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {session.type === 'focus' ? 'Focus Time' :
                          session.type === 'shortBreak' ? 'Short Break' : 'Long Break'}
+                        {task && ` - ${task.title}`}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{session.startTime}</span>
-                      {session.completed && (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      )}
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* This Week's Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle>This Week</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</span>
-                  <span className="font-bold text-gray-900 dark:text-gray-100">{pomodoroSessions.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Focus Time</span>
-                  <span className="font-bold text-gray-900 dark:text-gray-100">
-                    {Math.floor(pomodoroSessions.filter(s => s.type === 'focus').length * 25 / 60)}h {(pomodoroSessions.filter(s => s.type === 'focus').length * 25) % 60}m
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Current Streak</span>
-                  <span className="font-bold text-gray-900 dark:text-gray-100">
-                    {completedSessions} sessions
-                  </span>
-                </div>
+        {/* This Week's Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle>This Week</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100">{pomodoroSessions.length}</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Focus Time</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                  {Math.floor(pomodoroSessions.filter(s => s.type === 'focus').length * 25 / 60)}h {(pomodoroSessions.filter(s => s.type === 'focus').length * 25) % 60}m
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Current Streak</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                  {completedSessions} sessions
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

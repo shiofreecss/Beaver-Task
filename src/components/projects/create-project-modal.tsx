@@ -40,7 +40,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
     description: '',
     status: 'ACTIVE',
     dueDate: '',
-    organizationId: '',
+    organizationId: 'none',
     color: 'bg-blue-500'
   })
 
@@ -69,14 +69,18 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.name.trim()) {
-      onSubmit(formData)
+      const submissionData = {
+        ...formData,
+        organizationId: formData.organizationId === 'none' ? undefined : formData.organizationId
+      }
+      onSubmit(submissionData)
       if (!initialData) {
         setFormData({ 
           name: '', 
           description: '', 
           status: 'ACTIVE', 
           dueDate: '', 
-          organizationId: '', 
+          organizationId: 'none', 
           color: 'bg-blue-500' 
         })
       }
@@ -147,7 +151,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
                   <SelectValue placeholder="Select organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Organization</SelectItem>
+                  <SelectItem value="none">No Organization</SelectItem>
                   {organizations.map((org) => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}
