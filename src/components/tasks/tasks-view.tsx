@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Circle, CheckCircle2, Clock, Calendar, MoreVertical, Pencil, Trash2, AlertTriangle, Flag, Grid3X3, List, Table, Columns, CheckSquare } from 'lucide-react'
@@ -26,73 +26,131 @@ export function TasksView({ projectId }: TasksViewProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [isLoading, setIsLoading] = useState(true)
 
   // Get tasks and projects from stores
   const tasks = useTaskStore((state) => state.tasks)
+  const fetchTasks = useTaskStore((state) => state.fetchTasks)
   const addTask = useTaskStore((state) => state.addTask)
   const updateTask = useTaskStore((state) => state.updateTask)
   const deleteTask = useTaskStore((state) => state.deleteTask)
   const projects = useProjectStore((state) => state.projects)
+  const fetchProjects = useProjectStore((state) => state.fetchProjects)
+
+  // Fetch tasks and projects on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await Promise.all([fetchTasks(), fetchProjects()])
+      } catch (error) {
+        console.error('Failed to fetch data:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load data. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [fetchTasks, fetchProjects])
 
   // Filter tasks by project if projectId is provided
   const filteredTasks = projectId
     ? tasks.filter(task => task.projectId === projectId)
     : tasks
 
-  const handleCreateTask = (taskData: any) => {
-    addTask({
-      title: taskData.title,
-      description: taskData.description,
-      status: taskData.status,
-      priority: taskData.priority,
-      severity: taskData.severity,
-      dueDate: taskData.dueDate,
-      projectId: projectId || taskData.projectId
-    })
-    setShowCreateModal(false)
-    toast({
-      title: "Task created",
-      description: `${taskData.title} has been created successfully.`,
-    })
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      await addTask({
+        title: taskData.title,
+        description: taskData.description,
+        status: taskData.status,
+        priority: taskData.priority,
+        severity: taskData.severity,
+        dueDate: taskData.dueDate,
+        projectId: projectId || taskData.projectId
+      })
+      setShowCreateModal(false)
+      toast({
+        title: "Task created",
+        description: `${taskData.title} has been created successfully.`,
+      })
+    } catch (error) {
+      console.error('Error creating task:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleEditTask = (taskData: any) => {
+  const handleEditTask = async (taskData: any) => {
     if (!editingTask) return
     
-    updateTask(editingTask.id, {
-      title: taskData.title,
-      description: taskData.description,
-      status: taskData.status,
-      priority: taskData.priority,
-      severity: taskData.severity,
-      dueDate: taskData.dueDate,
-      projectId: projectId || taskData.projectId
-    })
-    setEditingTask(null)
-    toast({
-      title: "Task updated",
-      description: `${taskData.title} has been updated successfully.`,
-    })
+    try {
+      await updateTask(editingTask.id, {
+        title: taskData.title,
+        description: taskData.description,
+        status: taskData.status,
+        priority: taskData.priority,
+        severity: taskData.severity,
+        dueDate: taskData.dueDate,
+        projectId: projectId || taskData.projectId
+      })
+      setEditingTask(null)
+      toast({
+        title: "Task updated",
+        description: `${taskData.title} has been updated successfully.`,
+      })
+    } catch (error) {
+      console.error('Error updating task:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId)
-    toast({
-      title: "Task deleted",
-      description: "The task has been deleted successfully.",
-    })
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId)
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+      })
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const toggleTask = (taskId: string) => {
+  const toggleTask = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
     
     const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
-    updateTask(taskId, { status: newStatus })
-    toast({
-      title: `Task ${newStatus === 'COMPLETED' ? 'completed' : 'reopened'}`,
-      description: `${task.title} has been ${newStatus === 'COMPLETED' ? 'marked as complete' : 'reopened'}.`,
-    })
+    try {
+      await updateTask(taskId, { status: newStatus })
+      toast({
+        title: `Task ${newStatus === 'COMPLETED' ? 'completed' : 'reopened'}`,
+        description: `${task.title} has been ${newStatus === 'COMPLETED' ? 'marked as complete' : 'reopened'}.`,
+      })
+    } catch (error) {
+      console.error('Error updating task status:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   const getPriorityColor = (priority: string) => {
@@ -418,9 +476,9 @@ export function TasksView({ projectId }: TasksViewProps) {
 
   const renderKanbanView = () => {
     const statusColumns = [
-      { key: 'TODO', label: 'To Do', color: 'bg-gray-100 border-gray-300' },
-      { key: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 border-blue-300' },
-      { key: 'COMPLETED', label: 'Completed', color: 'bg-green-100 border-green-300' }
+      { key: 'TODO', label: 'To Do', color: 'bg-gray-100 border-gray-300 dark:bg-zinc-900 dark:border-zinc-700' },
+      { key: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 border-blue-300 dark:bg-blue-900 dark:border-blue-700' },
+      { key: 'COMPLETED', label: 'Completed', color: 'bg-green-100 border-green-300 dark:bg-green-900 dark:border-green-700' }
     ]
 
     return (
@@ -555,7 +613,11 @@ export function TasksView({ projectId }: TasksViewProps) {
         </div>
       </div>
 
-      {filteredTasks.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading tasks...</p>
+        </div>
+      ) : filteredTasks.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <CheckSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />

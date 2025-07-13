@@ -15,6 +15,14 @@ export async function GET() {
       where: {
         userId: session.user.id as string
       },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
       orderBy: {
         createdAt: 'desc'
       }
@@ -38,6 +46,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { title, description, status, priority, severity, dueDate, projectId } = body
 
+    // Validate project if projectId is provided
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          userId: session.user.id
+        }
+      })
+
+      if (!project) {
+        return NextResponse.json({ error: 'Project not found or unauthorized' }, { status: 404 })
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
@@ -46,8 +68,17 @@ export async function POST(request: NextRequest) {
         priority: priority || 'P1',
         severity: severity || 'S1',
         dueDate: dueDate ? new Date(dueDate) : null,
-        projectId,
-        userId: session.user.id as string
+        projectId: projectId || null,
+        userId: session.user.id as string,
+        completed: false
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     })
 

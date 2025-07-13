@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table, Columns } from 'lucide-react'
@@ -12,12 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/use-toast"
-import { useProjectStore } from '@/store/projects'
+import { useProjectStore, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '@/store/projects'
 import { useTaskStore } from '@/store/tasks'
 import { useOrganizationStore } from '@/store/organizations'
 import { TasksView } from '@/components/tasks/tasks-view'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { getTailwindColor } from '@/lib/utils'
 
 interface ProjectsViewProps {
   organizationId?: string
@@ -30,73 +31,105 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   const [editingProject, setEditingProject] = useState<any>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [isLoading, setIsLoading] = useState(true)
 
   // Get projects, tasks, and organizations from stores
   const projects = useProjectStore((state) => state.projects)
+  const fetchProjects = useProjectStore((state) => state.fetchProjects)
   const addProject = useProjectStore((state) => state.addProject)
   const updateProject = useProjectStore((state) => state.updateProject)
   const deleteProject = useProjectStore((state) => state.deleteProject)
   const tasks = useTaskStore((state) => state.tasks)
   const organizations = useOrganizationStore((state) => state.organizations)
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await fetchProjects()
+      } catch (error) {
+        console.error('Failed to fetch projects:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load projects. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [fetchProjects])
+
   // Filter projects by organization if organizationId is provided
   const filteredProjects = organizationId 
     ? projects.filter(project => project.organizationId === organizationId)
     : projects
 
-  const handleCreateProject = (projectData: any) => {
-    addProject({
-      name: projectData.name,
-      description: projectData.description,
-      status: projectData.status,
-      dueDate: projectData.dueDate,
-      color: projectData.color,
-      progress: 0,
-      organizationId: organizationId || projectData.organizationId
-    })
-    setShowCreateModal(false)
-    toast({
-      title: "Project created",
-      description: `${projectData.name} has been created successfully.`,
-    })
-  }
-
-  const handleEditProject = (projectData: any) => {
-    if (!editingProject) return
-    
-    updateProject(editingProject.id, {
-      name: projectData.name,
-      description: projectData.description,
-      status: projectData.status,
-      dueDate: projectData.dueDate,
-      color: projectData.color,
-      organizationId: organizationId || projectData.organizationId
-    })
-    setEditingProject(null)
-    toast({
-      title: "Project updated",
-      description: `${projectData.name} has been updated successfully.`,
-    })
-  }
-
-  const handleDeleteProject = (projectId: string) => {
-    const hasTasks = tasks.some(task => task.projectId === projectId)
-    
-    if (hasTasks) {
+  const handleCreateProject = async (projectData: any) => {
+    try {
+      await addProject({
+        name: projectData.name,
+        description: projectData.description,
+        status: projectData.status,
+        dueDate: projectData.dueDate,
+        color: projectData.color,
+        progress: 0,
+        organizationId: organizationId || projectData.organizationId
+      })
+      setShowCreateModal(false)
       toast({
-        title: "Cannot delete project",
-        description: "Please remove or reassign all tasks before deleting this project.",
+        title: "Project created",
+        description: `${projectData.name} has been created successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
         variant: "destructive"
       })
-      return
     }
+  }
+
+  const handleEditProject = async (projectData: any) => {
+    if (!editingProject) return
     
-    deleteProject(projectId)
-    setSelectedProjectId(null)
-    toast({
-      title: "Project deleted",
-      description: "The project has been deleted successfully.",
-    })
+    try {
+      await updateProject(editingProject.id, {
+        name: projectData.name,
+        description: projectData.description,
+        status: projectData.status,
+        dueDate: projectData.dueDate,
+        color: projectData.color,
+        organizationId: organizationId || projectData.organizationId
+      })
+      setEditingProject(null)
+      toast({
+        title: "Project updated",
+        description: `${projectData.name} has been updated successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update project. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await deleteProject(projectId)
+      toast({
+        title: "Project deleted",
+        description: "The project has been deleted successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   // Get task count for a project
@@ -113,23 +146,11 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PLANNING': return 'bg-blue-500'
-      case 'IN_PROGRESS': return 'bg-yellow-500'
-      case 'COMPLETED': return 'bg-green-500'
-      case 'ON_HOLD': return 'bg-gray-500'
-      default: return 'bg-gray-500'
-    }
+    return PROJECT_STATUS_COLORS[status as keyof typeof PROJECT_STATUS_COLORS] || 'bg-gray-500'
   }
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PLANNING': return 'Planning'
-      case 'IN_PROGRESS': return 'In Progress'
-      case 'COMPLETED': return 'Completed'
-      case 'ON_HOLD': return 'On Hold'
-      default: return status
-    }
+    return PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS] || status
   }
 
   const viewModeButtons = [
@@ -148,7 +169,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
               <div className="flex items-center gap-3">
                 <div 
                   className="w-4 h-4 rounded-full" 
-                  style={{ backgroundColor: project.color || '#6B7280' }}
+                  style={{ backgroundColor: getTailwindColor(project.color) }}
                 />
                 <CardTitle className="text-lg">{project.name}</CardTitle>
               </div>
@@ -225,7 +246,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
               <div className="flex items-center gap-4 flex-1">
                 <div 
                   className="w-4 h-4 rounded-full flex-shrink-0" 
-                  style={{ backgroundColor: project.color || '#6B7280' }}
+                  style={{ backgroundColor: getTailwindColor(project.color) }}
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-lg truncate">{project.name}</h3>
@@ -306,7 +327,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: project.color || '#6B7280' }}
+                        style={{ backgroundColor: getTailwindColor(project.color) }}
                       />
                       <div>
                         <span className="font-medium">{project.name}</span>
@@ -411,7 +432,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                         <div className="flex items-center gap-2">
                           <div 
                             className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: project.color || '#6B7280' }}
+                            style={{ backgroundColor: getTailwindColor(project.color) }}
                           />
                           <h4 className="font-medium text-sm truncate">{project.name}</h4>
                         </div>
@@ -539,7 +560,11 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
         </div>
       </div>
 
-      {filteredProjects.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading projects...</p>
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">📁</div>

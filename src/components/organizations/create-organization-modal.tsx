@@ -29,7 +29,7 @@ export function CreateOrganizationModal({ open, onOpenChange, onSubmit, initialD
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    color: 'bg-blue-500'
+    color: '#3B82F6' // Default blue
   })
 
   useEffect(() => {
@@ -39,12 +39,12 @@ export function CreateOrganizationModal({ open, onOpenChange, onSubmit, initialD
   }, [initialData])
 
   const colorOptions = [
-    { value: 'bg-blue-500', label: 'Blue' },
-    { value: 'bg-green-500', label: 'Green' },
-    { value: 'bg-purple-500', label: 'Purple' },
-    { value: 'bg-red-500', label: 'Red' },
-    { value: 'bg-orange-500', label: 'Orange' },
-    { value: 'bg-cyan-500', label: 'Cyan' }
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#22C55E', label: 'Green' },
+    { value: '#A855F7', label: 'Purple' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#F97316', label: 'Orange' },
+    { value: '#06B6D4', label: 'Cyan' }
   ]
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +52,7 @@ export function CreateOrganizationModal({ open, onOpenChange, onSubmit, initialD
     if (formData.name.trim()) {
       onSubmit(formData)
       if (!initialData) {
-        setFormData({ name: '', description: '', color: 'bg-blue-500' })
+        setFormData({ name: '', description: '', color: '#3B82F6' })
       }
     }
   }
@@ -95,7 +95,7 @@ export function CreateOrganizationModal({ open, onOpenChange, onSubmit, initialD
                 {colorOptions.map((color) => (
                   <SelectItem key={color.value} value={color.value}>
                     <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded ${color.value} mr-2`} />
+                      <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: color.value }} />
                       {color.label}
                     </div>
                   </SelectItem>

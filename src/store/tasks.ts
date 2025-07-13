@@ -26,43 +26,119 @@ export interface Task {
   severity: SeverityLevel
   dueDate?: string
   projectId?: string
+  project?: {
+    id: string
+    name: string
+  }
   createdAt: string
   updatedAt: string
 }
 
 interface TaskState {
   tasks: Task[]
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateTask: (id: string, task: Partial<Task>) => void
-  deleteTask: (id: string) => void
-  getTasksByProject: (projectId: string) => Task[]
+  setTasks: (tasks: Task[]) => void
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'project'>) => Promise<void>
+  updateTask: (id: string, task: Partial<Task>) => Promise<void>
+  deleteTask: (id: string) => Promise<void>
+  fetchTasks: () => Promise<void>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
-  
-  addTask: (task) => set((state) => ({
-    tasks: [...state.tasks, {
-      ...task,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }]
-  })),
 
-  updateTask: (id, updatedTask) => set((state) => ({
-    tasks: state.tasks.map((task) =>
-      task.id === id
-        ? { ...task, ...updatedTask, updatedAt: new Date().toISOString() }
-        : task
-    )
-  })),
+  setTasks: (tasks) => set({ tasks }),
 
-  deleteTask: (id) => set((state) => ({
-    tasks: state.tasks.filter((task) => task.id !== id)
-  })),
+  addTask: async (task) => {
+    try {
+      // Convert empty projectId to null
+      const taskData = {
+        ...task,
+        projectId: task.projectId || null
+      }
 
-  getTasksByProject: (projectId) => {
-    return get().tasks.filter((task) => task.projectId === projectId)
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData),
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create task')
+      }
+      
+      const newTask = await response.json()
+      set((state) => ({
+        tasks: [...state.tasks, newTask]
+      }))
+    } catch (error) {
+      console.error('Error adding task:', error)
+      throw error
+    }
+  },
+
+  updateTask: async (id, task) => {
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...task,
+          projectId: task.projectId || null
+        }),
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update task')
+      }
+      
+      const updatedTask = await response.json()
+      set((state) => ({
+        tasks: state.tasks.map((t) => 
+          t.id === id ? updatedTask : t
+        )
+      }))
+    } catch (error) {
+      console.error('Error updating task:', error)
+      throw error
+    }
+  },
+
+  deleteTask: async (id) => {
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete task')
+      }
+      
+      set((state) => ({
+        tasks: state.tasks.filter((t) => t.id !== id)
+      }))
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      throw error
+    }
+  },
+
+  fetchTasks: async () => {
+    try {
+      const response = await fetch('/api/tasks')
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to fetch tasks')
+      }
+      
+      const tasks = await response.json()
+      set({ tasks })
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+      throw error
+    }
   }
 })) 

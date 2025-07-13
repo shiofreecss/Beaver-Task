@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-interface Organization {
+interface Project {
   id: string
   name: string
 }
@@ -23,7 +23,7 @@ interface CreateProjectModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: any) => void
-  organizations: Organization[]
+  organizations?: Project[]
   organizationId?: string
   initialData?: {
     name: string
@@ -42,7 +42,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
     status: 'ACTIVE',
     dueDate: '',
     organizationId: organizationId || 'none',
-    color: 'bg-blue-500'
+    color: '#3B82F6' // Default blue
   })
 
   useEffect(() => {
@@ -56,18 +56,18 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
         status: 'ACTIVE', 
         dueDate: '', 
         organizationId: organizationId || 'none', 
-        color: 'bg-blue-500' 
+        color: '#3B82F6'
       })
     }
   }, [initialData, organizationId])
 
   const colorOptions = [
-    { value: 'bg-blue-500', label: 'Blue' },
-    { value: 'bg-green-500', label: 'Green' },
-    { value: 'bg-purple-500', label: 'Purple' },
-    { value: 'bg-red-500', label: 'Red' },
-    { value: 'bg-orange-500', label: 'Orange' },
-    { value: 'bg-cyan-500', label: 'Cyan' }
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#22C55E', label: 'Green' },
+    { value: '#A855F7', label: 'Purple' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#F97316', label: 'Orange' },
+    { value: '#06B6D4', label: 'Cyan' }
   ]
 
   const statusOptions = [
@@ -92,7 +92,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
           status: 'ACTIVE', 
           dueDate: '', 
           organizationId: 'none', 
-          color: 'bg-blue-500' 
+          color: '#3B82F6'
         })
       }
     }
@@ -100,11 +100,10 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Project' : 'Create New Project'}</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
@@ -154,42 +153,44 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
             </div>
           </div>
 
-          {organizations.length > 0 && (
+          <div className="grid grid-cols-2 gap-4">
+            {organizations.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="organization">Organization</Label>
+                <Select value={formData.organizationId} onValueChange={(value) => setFormData(prev => ({ ...prev, organizationId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Organization</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="organization">Organization</Label>
-              <Select value={formData.organizationId} onValueChange={(value) => setFormData(prev => ({ ...prev, organizationId: value }))}>
+              <Label htmlFor="color">Color Theme</Label>
+              <Select value={formData.color} onValueChange={(value) => setFormData(prev => ({ ...prev, color: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
+                  <SelectValue placeholder="Select a color" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Organization</SelectItem>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
+                  {colorOptions.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: color.value }} />
+                        {color.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="color">Color Theme</Label>
-            <Select value={formData.color} onValueChange={(value) => setFormData(prev => ({ ...prev, color: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a color" />
-              </SelectTrigger>
-              <SelectContent>
-                {colorOptions.map((color) => (
-                  <SelectItem key={color.value} value={color.value}>
-                    <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded ${color.value} mr-2`} />
-                      {color.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex justify-end space-x-2">

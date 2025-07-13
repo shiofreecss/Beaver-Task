@@ -47,12 +47,13 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
     severity: 'S1',
     status: 'TODO',
     dueDate: '',
-    projectId: projectId || ''
+    projectId: projectId || 'none',
   })
+  const [error, setError] = useState<string>('')
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData)
+      setFormData({ ...initialData, projectId: initialData.projectId || 'none' })
     } else {
       setFormData({
         title: '',
@@ -61,10 +62,11 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
         severity: 'S1',
         status: 'TODO',
         dueDate: '',
-        projectId: projectId || ''
+        projectId: projectId || 'none',
       })
     }
-  }, [initialData, projectId])
+    setError('')
+  }, [initialData, projectId, open])
 
   const priorityOptions = Object.entries(PRIORITY_LABELS).map(([value, label]) => ({
     value,
@@ -82,20 +84,37 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
     { value: 'COMPLETED', label: 'Completed' }
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    
     if (formData.title.trim()) {
-      onSubmit(formData)
-      if (!initialData) {
-        setFormData({
-          title: '',
-          description: '',
-          priority: 'P1',
-          severity: 'S1',
-          status: 'TODO',
-          dueDate: '',
-          projectId: ''
-        })
+      try {
+        // Construct submitData with correct types
+        const submitData = {
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          severity: formData.severity,
+          status: formData.status,
+          dueDate: formData.dueDate,
+          projectId: formData.projectId === 'none' ? undefined : formData.projectId
+        }
+        await onSubmit(submitData as any)
+        if (!initialData) {
+          setFormData({
+            title: '',
+            description: '',
+            priority: 'P1',
+            severity: 'S1',
+            status: 'TODO',
+            dueDate: '',
+            projectId: 'none',
+          })
+        }
+        onOpenChange(false)
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to create task')
       }
     }
   }
@@ -107,6 +126,9 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
           <DialogTitle>{initialData ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -190,26 +212,24 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
             </div>
           </div>
 
-          {projects.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="project">Project</Label>
-              <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No Project</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="project">Project</Label>
+            <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Project</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-2">
             <Button
               type="button"
               variant="outline"

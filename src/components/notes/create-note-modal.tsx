@@ -19,21 +19,28 @@ interface Project {
   name: string
 }
 
+interface NoteFormData {
+  title: string
+  content: string
+  tags: string
+  projectId: string
+}
+
 interface CreateNoteModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: NoteFormData) => void
   projects: Project[]
   initialData?: {
     title: string
     content: string
-    tags: string[]
+    tags: string
     projectId?: string
   }
 }
 
 export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], initialData }: CreateNoteModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<NoteFormData>({
     title: '',
     content: '',
     tags: '',
@@ -45,7 +52,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
       setFormData({
         title: initialData.title,
         content: initialData.content,
-        tags: initialData.tags.join(', '),
+        tags: initialData.tags,
         projectId: initialData.projectId || 'none'
       })
     } else {
@@ -61,11 +68,7 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.title.trim()) {
-      const submissionData = {
-        ...formData,
-        projectId: formData.projectId === 'none' ? undefined : formData.projectId
-      }
-      onSubmit(submissionData)
+      onSubmit(formData)
       if (!initialData) {
         setFormData({
           title: '',

@@ -15,55 +15,69 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { Badge } from '@/components/ui/badge'
 import { useProjectStore } from '@/store/projects'
+import { useNoteStore, Note } from '@/store/notes'
 
 type ViewMode = 'grid' | 'list' | 'table'
 
+interface NoteFormData {
+  title: string
+  content: string
+  tags: string
+  projectId: string
+}
+
+interface NoteWithProject extends Note {
+  projectName?: string
+}
+
 export function NotesView() {
-  const [notes, setNotes] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingNote, setEditingNote] = useState<any>(null)
+  const [editingNote, setEditingNote] = useState<NoteWithProject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
-  // Get projects from store
+  // Get notes and projects from stores
+  const notes = useNoteStore((state) => state.notes)
+  const fetchNotes = useNoteStore((state) => state.fetchNotes)
+  const addNote = useNoteStore((state) => state.addNote)
+  const updateNote = useNoteStore((state) => state.updateNote)
+  const deleteNote = useNoteStore((state) => state.deleteNote)
   const projects = useProjectStore((state) => state.projects)
+
+  // Transform notes to include project names
+  const notesWithProjects: NoteWithProject[] = notes.map(note => ({
+    ...note,
+    projectName: note.projectId ? projects.find(p => p.id === note.projectId)?.name : undefined
+  }))
 
   // Fetch notes on component mount
   useEffect(() => {
-    fetchNotes()
-  }, [])
-
-  const fetchNotes = async () => {
-    try {
-      const response = await fetch('/api/notes')
-      if (!response.ok) throw new Error('Failed to fetch notes')
-      const data = await response.json()
-      setNotes(data)
-    } catch (error) {
-      console.error('Error fetching notes:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load notes. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
+    const loadData = async () => {
+      try {
+        await fetchNotes()
+      } catch (error) {
+        console.error('Failed to fetch notes:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load notes. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }
+    loadData()
+  }, [fetchNotes])
 
-  const handleCreateNote = async (noteData: any) => {
+  const handleCreateNote = async (noteData: NoteFormData) => {
     try {
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(noteData)
+      await addNote({
+        title: noteData.title,
+        content: noteData.content,
+        tags: noteData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId
       })
-
-      if (!response.ok) throw new Error('Failed to create note')
-      
-      const newNote = await response.json()
-      setNotes([newNote, ...notes])
       setShowCreateModal(false)
       toast({
         title: "Note created",
@@ -79,22 +93,16 @@ export function NotesView() {
     }
   }
 
-  const handleEditNote = async (noteData: any) => {
+  const handleEditNote = async (noteData: NoteFormData) => {
     if (!editingNote) return
 
     try {
-      const response = await fetch('/api/notes', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingNote.id, ...noteData })
+      await updateNote(editingNote.id, {
+        title: noteData.title,
+        content: noteData.content,
+        tags: noteData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId
       })
-
-      if (!response.ok) throw new Error('Failed to update note')
-      
-      const updatedNote = await response.json()
-      setNotes(notes.map(note => 
-        note.id === editingNote.id ? updatedNote : note
-      ))
       setEditingNote(null)
       toast({
         title: "Note updated",
@@ -112,13 +120,7 @@ export function NotesView() {
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      const response = await fetch(`/api/notes?id=${noteId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) throw new Error('Failed to delete note')
-      
-      setNotes(notes.filter(note => note.id !== noteId))
+      await deleteNote(noteId)
       toast({
         title: "Note deleted",
         description: "The note has been deleted successfully.",
@@ -134,7 +136,7 @@ export function NotesView() {
   }
 
   // Filter notes based on search term
-  const filteredNotes = notes.filter(note =>
+  const filteredNotes = notesWithProjects.filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))

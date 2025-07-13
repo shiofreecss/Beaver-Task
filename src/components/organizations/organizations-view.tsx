@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Building, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table } from 'lucide-react'
@@ -16,6 +16,7 @@ import { useOrganizationStore } from '@/store/organizations'
 import { useProjectStore } from '@/store/projects'
 import { ProjectsView } from '@/components/projects/projects-view'
 import { Badge } from '@/components/ui/badge'
+import { getTailwindColor } from '@/lib/utils'
 
 type ViewMode = 'grid' | 'list' | 'table'
 
@@ -24,43 +25,79 @@ export function OrganizationsView() {
   const [editingOrg, setEditingOrg] = useState<any>(null)
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [isLoading, setIsLoading] = useState(true)
 
   // Get organizations and projects from stores
   const organizations = useOrganizationStore((state) => state.organizations)
+  const fetchOrganizations = useOrganizationStore((state) => state.fetchOrganizations)
   const addOrganization = useOrganizationStore((state) => state.addOrganization)
   const updateOrganization = useOrganizationStore((state) => state.updateOrganization)
   const deleteOrganization = useOrganizationStore((state) => state.deleteOrganization)
   const projects = useProjectStore((state) => state.projects)
 
-  const handleCreateOrganization = (orgData: any) => {
-    addOrganization({
-      name: orgData.name,
-      description: orgData.description,
-      color: orgData.color
-    })
-    setShowCreateModal(false)
-    toast({
-      title: "Organization created",
-      description: `${orgData.name} has been created successfully.`,
-    })
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await fetchOrganizations()
+      } catch (error) {
+        console.error('Failed to fetch organizations:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load organizations. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadData()
+  }, [fetchOrganizations])
+
+  const handleCreateOrganization = async (orgData: any) => {
+    try {
+      await addOrganization({
+        name: orgData.name,
+        description: orgData.description,
+        color: orgData.color
+      })
+      setShowCreateModal(false)
+      toast({
+        title: "Organization created",
+        description: `${orgData.name} has been created successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create organization. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleEditOrganization = (orgData: any) => {
+  const handleEditOrganization = async (orgData: any) => {
     if (!editingOrg) return
 
-    updateOrganization(editingOrg.id, {
-      name: orgData.name,
-      description: orgData.description,
-      color: orgData.color
-    })
-    setEditingOrg(null)
-    toast({
-      title: "Organization updated",
-      description: `${orgData.name} has been updated successfully.`,
-    })
+    try {
+      await updateOrganization(editingOrg.id, {
+        name: orgData.name,
+        description: orgData.description,
+        color: orgData.color
+      })
+      setEditingOrg(null)
+      toast({
+        title: "Organization updated",
+        description: `${orgData.name} has been updated successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update organization. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleDeleteOrganization = (orgId: string) => {
+  const handleDeleteOrganization = async (orgId: string) => {
     const hasProjects = projects.some(project => project.organizationId === orgId)
     
     if (hasProjects) {
@@ -72,12 +109,20 @@ export function OrganizationsView() {
       return
     }
     
-    deleteOrganization(orgId)
-    setSelectedOrgId(null)
-    toast({
-      title: "Organization deleted",
-      description: "The organization has been deleted successfully.",
-    })
+    try {
+      await deleteOrganization(orgId)
+      setSelectedOrgId(null)
+      toast({
+        title: "Organization deleted",
+        description: "The organization has been deleted successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete organization. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   // Get project count for an organization
@@ -100,7 +145,7 @@ export function OrganizationsView() {
               <div className="flex items-center gap-3">
                 <div 
                   className="w-4 h-4 rounded-full" 
-                  style={{ backgroundColor: org.color || '#6B7280' }}
+                  style={{ backgroundColor: getTailwindColor(org.color) }}
                 />
                 <CardTitle className="text-lg">{org.name}</CardTitle>
               </div>
@@ -158,7 +203,7 @@ export function OrganizationsView() {
               <div className="flex items-center gap-4 flex-1">
                 <div 
                   className="w-4 h-4 rounded-full flex-shrink-0" 
-                  style={{ backgroundColor: org.color || '#6B7280' }}
+                  style={{ backgroundColor: getTailwindColor(org.color) }}
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-lg truncate">{org.name}</h3>
@@ -227,7 +272,7 @@ export function OrganizationsView() {
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: org.color || '#6B7280' }}
+                        style={{ backgroundColor: getTailwindColor(org.color) }}
                       />
                       <span className="font-medium">{org.name}</span>
                     </div>
@@ -344,7 +389,11 @@ export function OrganizationsView() {
         </div>
       </div>
 
-      {organizations.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading organizations...</p>
+        </div>
+      ) : organizations.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <Building className="mx-auto h-12 w-12 text-muted-foreground mb-4" />

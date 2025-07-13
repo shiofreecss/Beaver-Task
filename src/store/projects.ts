@@ -1,56 +1,125 @@
 import { create } from 'zustand'
+import { getTailwindClass } from '@/lib/utils'
 
 export interface Project {
   id: string
   name: string
   description?: string
-  status: 'planning' | 'active' | 'completed' | 'on_hold'
-  dueDate?: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  organizationId: string
   color: string
-  progress: number
-  organizationId?: string
+  dueDate?: string
   createdAt: string
   updatedAt: string
 }
 
+export const PROJECT_STATUS_COLORS = {
+  'not_started': 'bg-gray-500',
+  'in_progress': 'bg-blue-500',
+  'completed': 'bg-green-500'
+} as const
+
+export const PROJECT_STATUS_LABELS = {
+  'not_started': 'Not Started',
+  'in_progress': 'In Progress',
+  'completed': 'Completed'
+} as const
+
 interface ProjectState {
   projects: Project[]
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateProject: (id: string, project: Partial<Project>) => void
-  deleteProject: (id: string) => void
+  setProjects: (projects: Project[]) => void
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  updateProject: (id: string, project: Partial<Project>) => Promise<void>
+  deleteProject: (id: string) => Promise<void>
   getProjectById: (id: string) => Project | undefined
-  getProjectsByOrganization: (organizationId: string) => Project[]
+  fetchProjects: () => Promise<void>
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
-  
-  addProject: (project) => set((state) => ({
-    projects: [...state.projects, {
-      ...project,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }]
-  })),
 
-  updateProject: (id, updatedProject) => set((state) => ({
-    projects: state.projects.map((project) =>
-      project.id === id
-        ? { ...project, ...updatedProject, updatedAt: new Date().toISOString() }
-        : project
-    )
-  })),
+  setProjects: (projects) => set({ projects }),
 
-  deleteProject: (id) => set((state) => ({
-    projects: state.projects.filter((project) => project.id !== id)
-  })),
-
-  getProjectById: (id) => {
-    return get().projects.find((project) => project.id === id)
+  addProject: async (project) => {
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...project,
+          color: getTailwindClass(project.color)
+        }),
+      })
+      
+      if (!response.ok) throw new Error('Failed to create project')
+      
+      const newProject = await response.json()
+      set((state) => ({
+        projects: [...state.projects, newProject]
+      }))
+    } catch (error) {
+      console.error('Error adding project:', error)
+      throw error
+    }
   },
 
-  getProjectsByOrganization: (organizationId) => {
-    return get().projects.filter((project) => project.organizationId === organizationId)
+  updateProject: async (id, project) => {
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...project,
+          color: project.color ? getTailwindClass(project.color) : undefined
+        }),
+      })
+      
+      if (!response.ok) throw new Error('Failed to update project')
+      
+      const updatedProject = await response.json()
+      set((state) => ({
+        projects: state.projects.map((p) => 
+          p.id === id ? updatedProject : p
+        )
+      }))
+    } catch (error) {
+      console.error('Error updating project:', error)
+      throw error
+    }
+  },
+
+  deleteProject: async (id) => {
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) throw new Error('Failed to delete project')
+      
+      set((state) => ({
+        projects: state.projects.filter((p) => p.id !== id)
+      }))
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      throw error
+    }
+  },
+
+  getProjectById: (id) => {
+    return get().projects.find((p) => p.id === id)
+  },
+
+  fetchProjects: async () => {
+    try {
+      const response = await fetch('/api/projects')
+      
+      if (!response.ok) throw new Error('Failed to fetch projects')
+      
+      const projects = await response.json()
+      set({ projects })
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+      throw error
+    }
   }
 })) 
