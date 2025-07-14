@@ -5,7 +5,7 @@ export interface Project {
   id: string
   name: string
   description?: string
-  status: 'not_started' | 'in_progress' | 'completed'
+  status: 'ACTIVE' | 'PLANNING' | 'ON_HOLD' | 'COMPLETED'
   organizationId: string
   color: string
   dueDate?: string
@@ -14,15 +14,17 @@ export interface Project {
 }
 
 export const PROJECT_STATUS_COLORS = {
-  'not_started': 'bg-gray-500',
-  'in_progress': 'bg-blue-500',
-  'completed': 'bg-green-500'
+  'ACTIVE': 'bg-blue-500',
+  'PLANNING': 'bg-yellow-500',
+  'ON_HOLD': 'bg-gray-500',
+  'COMPLETED': 'bg-green-500'
 } as const
 
 export const PROJECT_STATUS_LABELS = {
-  'not_started': 'Not Started',
-  'in_progress': 'In Progress',
-  'completed': 'Completed'
+  'ACTIVE': 'Active',
+  'PLANNING': 'Planning',
+  'ON_HOLD': 'On Hold',
+  'COMPLETED': 'Completed'
 } as const
 
 interface ProjectState {

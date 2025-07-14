@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: {
-        id: session.user.id,
+        id: session.user.id as string,
       },
       select: {
         id: true,
@@ -90,7 +90,7 @@ export async function PUT(req: Request) {
     // Update user profile
     const updatedUser = await prisma.user.update({
       where: {
-        id: session.user.id,
+        id: session.user.id as string,
       },
       data: {
         name: validatedData.name,

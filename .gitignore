@@ -10,6 +10,20 @@ node_modules/
 # Prisma
 prisma/dev.db
 prisma/dev.db-journal
+*.db
+*.db-journal
+.prisma/
+prisma/generated/
+prisma/client/
+prisma/*.db*
+
+# Database
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sql.gz
+*.dump
+*.backup
 
 # OS files
 .DS_Store

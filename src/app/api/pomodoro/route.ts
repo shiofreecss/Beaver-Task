@@ -12,7 +12,7 @@ export async function GET() {
 
     const sessions = await prisma.pomodoroSession.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id as string
       },
       orderBy: {
         createdAt: 'desc'
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         duration,
         type,
         taskId,
-        userId: session.user.id,
+        userId: session.user.id as string,
         startTime: new Date()
       }
     })
@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
     const pomodoroSession = await prisma.pomodoroSession.update({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       data: {
         completed,
@@ -106,7 +106,7 @@ export async function DELETE(req: Request) {
     await prisma.pomodoroSession.delete({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       }
     })
 

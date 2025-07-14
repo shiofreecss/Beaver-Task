@@ -19,7 +19,7 @@ export async function GET() {
 
     const organizations = await prisma.organization.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         projects: {
@@ -45,17 +45,36 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
+    console.log('Session:', session)
+    
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
+    console.log('User ID from session:', session.user.id)
+
     const body = await req.json()
+    console.log('Request body:', body)
+    
     const validatedData = organizationSchema.parse(body)
+    console.log('Validated data:', validatedData)
+
+    // Verify that the user exists
+    const user = await prisma.user.findUnique({
+      where: {
+        id: session.user.id as string
+      }
+    })
+    console.log('Found user:', user)
+
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 })
+    }
 
     const organization = await prisma.organization.create({
       data: {
         ...validatedData,
-        userId: session.user.id
+        userId: user.id
       },
       include: {
         projects: true
@@ -90,7 +109,7 @@ export async function PUT(req: Request) {
     const organization = await prisma.organization.update({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       data: validatedData,
       include: {
@@ -125,7 +144,7 @@ export async function DELETE(req: Request) {
     await prisma.organization.delete({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       }
     })
 

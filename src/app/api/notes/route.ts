@@ -12,7 +12,7 @@ export async function GET() {
 
     const notes = await prisma.note.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         project: {
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         content,
         tags: Array.isArray(tags) ? tags.join(',') : tags || '',
         projectId: projectId || null,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         project: {
@@ -103,7 +103,7 @@ export async function PUT(req: Request) {
     const note = await prisma.note.update({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       data: {
         title,
@@ -148,7 +148,7 @@ export async function DELETE(req: Request) {
     await prisma.note.delete({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       }
     })
 

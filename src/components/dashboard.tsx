@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   CheckSquare, 
@@ -23,16 +23,41 @@ import { useTaskStore } from '@/store/tasks'
 import { useProjectStore } from '@/store/projects'
 import { useHabitStore } from '@/store/habits'
 import { usePomodoroStore } from '@/store/pomodoro'
+import { DashboardCharts } from '@/components/dashboard/charts'
 
 function DashboardOverview() {
   const tasks = useTaskStore(state => state.tasks)
   const projects = useProjectStore(state => state.projects)
   const habits = useHabitStore(state => state.habits)
   const sessions = usePomodoroStore(state => state.sessions)
+  const fetchTasks = useTaskStore(state => state.fetchTasks)
+  const fetchProjects = useProjectStore(state => state.fetchProjects)
+  const fetchHabits = useHabitStore(state => state.fetchHabits)
+  const fetchSessions = usePomodoroStore(state => state.fetchSessions)
+
   const completedTasks = tasks.filter(task => task.status === 'COMPLETED').length
-  const activeProjects = projects.filter(project => project.status === 'in_progress').length
+  const activeProjects = projects.filter(project => project.status === 'ACTIVE').length
   const completedHabits = habits.filter(habit => habit.completedToday).length
   const focusMinutes = sessions.reduce((acc, session) => acc + (session.duration || 0), 0)
+
+  useEffect(() => {
+    // Initial fetch
+    const fetchAllData = async () => {
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects(),
+        fetchHabits(),
+        fetchSessions()
+      ])
+    }
+    
+    fetchAllData()
+
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(fetchAllData, 30000)
+
+    return () => clearInterval(interval)
+  }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions])
 
   return (
     <div className="p-8">
@@ -75,6 +100,12 @@ function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
+
+      <DashboardCharts 
+        tasks={tasks}
+        projects={projects}
+        sessions={sessions}
+      />
     </div>
   )
 }

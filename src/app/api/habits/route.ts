@@ -82,7 +82,7 @@ export async function GET() {
 
     const habits = await prisma.habit.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         entries: true
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     const habit = await prisma.habit.create({
       data: {
         ...validatedData,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         entries: true
@@ -148,7 +148,7 @@ export async function PUT(req: Request) {
       const habit = await prisma.habit.findUnique({
         where: {
           id,
-          userId: session.user.id
+          userId: session.user.id as string
         },
         include: {
           entries: true
@@ -162,7 +162,7 @@ export async function PUT(req: Request) {
       const existingEntry = await prisma.habitEntry.findFirst({
         where: {
           habitId: id,
-          userId: session.user.id,
+                      userId: session.user.id as string,
           date: {
             gte: today,
             lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
@@ -179,7 +179,7 @@ export async function PUT(req: Request) {
         await prisma.habitEntry.create({
           data: {
             habitId: id,
-            userId: session.user.id,
+            userId: session.user.id as string,
             completed,
             date: today
           }
@@ -201,10 +201,10 @@ export async function PUT(req: Request) {
     const validatedData = habitSchema.parse(updateData)
 
     const habit = await prisma.habit.update({
-      where: {
-        id,
-        userId: session.user.id
-      },
+              where: {
+          id,
+          userId: session.user.id as string
+        },
       data: validatedData,
       include: {
         entries: true
@@ -238,7 +238,7 @@ export async function DELETE(req: Request) {
     await prisma.habit.delete({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       }
     })
 

@@ -97,24 +97,47 @@ model Project {
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   tasks        Task[]
   notes        Note[]
+  columns      KanbanColumn[]
 }
 
 model Task {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   description String?
-  status      String    @default("TODO")
-  priority    String    @default("P1")
-  severity    String    @default("S1")
+  status      String      @default("TODO")
+  priority    String      @default("P1")
+  severity    String      @default("S1")
   dueDate     DateTime?
-  completed   Boolean   @default(false)
   projectId   String?
   userId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  parentId    String?
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Task?       @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks    Task[]      @relation("TaskHierarchy")
+  columnId    String?
+  column      KanbanColumn? @relation(fields: [columnId], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  @@index([projectId])
+  @@index([columnId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model KanbanColumn {
+  id          String      @id @default(cuid())
+  name        String
+  color       String
+  order       Int
+  projectId   String?
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([projectId])
 }
 
 model Note {

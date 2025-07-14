@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import * as z from 'zod'
+
+const taskSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'COMPLETED']).default('TODO'),
+  priority: z.enum(['P0', 'P1', 'P2', 'P3']).default('P1'),
+  severity: z.enum(['S0', 'S1', 'S2', 'S3']).default('S1'),
+  dueDate: z.string().optional().nullable(),
+  projectId: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable(),
+})
 
 export async function GET() {
   try {
@@ -44,14 +56,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, status, priority, severity, dueDate, projectId } = body
+    const validatedData = taskSchema.parse(body)
 
     // Validate project if projectId is provided
-    if (projectId) {
+    if (validatedData.projectId) {
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
-          userId: session.user.id
+          id: validatedData.projectId,
+          userId: session.user.id as string
         }
       })
 
@@ -62,15 +74,9 @@ export async function POST(request: NextRequest) {
 
     const task = await prisma.task.create({
       data: {
-        title,
-        description,
-        status: status || 'TODO',
-        priority: priority || 'P1',
-        severity: severity || 'S1',
-        dueDate: dueDate ? new Date(dueDate) : null,
-        projectId: projectId || null,
-        userId: session.user.id as string,
-        completed: false
+        ...validatedData,
+        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
+        userId: session.user.id as string
       },
       include: {
         project: {
@@ -85,6 +91,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(task)
   } catch (error) {
     console.error('Error creating task:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 422 })
+    }
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
   }
 } 

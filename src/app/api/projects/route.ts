@@ -22,7 +22,7 @@ export async function GET() {
 
     const projects = await prisma.project.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         organization: {
@@ -35,8 +35,7 @@ export async function GET() {
           select: {
             id: true,
             title: true,
-            status: true,
-            completed: true
+            status: true
           }
         }
       },
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
       data: {
         ...validatedData,
         dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       include: {
         organization: {
@@ -106,7 +105,7 @@ export async function PUT(req: Request) {
     const project = await prisma.project.update({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       },
       data: {
         ...validatedData,
@@ -149,7 +148,7 @@ export async function DELETE(req: Request) {
     await prisma.project.delete({
       where: {
         id,
-        userId: session.user.id
+        userId: session.user.id as string
       }
     })
 
