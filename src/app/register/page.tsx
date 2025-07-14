@@ -8,7 +8,7 @@ export default function RegisterPage() {
       <Card className="w-[400px]">
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
-          <CardDescription>Sign up to get started with Beaver</CardDescription>
+          <CardDescription>Sign up to get started with Beaver Task</CardDescription>
         </CardHeader>
         <CardContent>
           <RegisterForm />

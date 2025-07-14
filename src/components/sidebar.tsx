@@ -53,7 +53,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <div className="w-64 bg-card border-r border-border h-full flex flex-col">
         <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground">🦫 Beaver</h2>
+            <h2 className="text-xl font-bold text-foreground">🦫 Beaver Task</h2>
             <ThemeToggle />
           </div>
         </div>
