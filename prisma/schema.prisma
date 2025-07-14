@@ -104,7 +104,7 @@ model Task {
   id          String      @id @default(cuid())
   title       String
   description String?
-  status      String      @default("TODO")
+  status      String      @default("ACTIVE")
   priority    String      @default("P1")
   severity    String      @default("S1")
   dueDate     DateTime?

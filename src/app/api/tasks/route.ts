@@ -7,7 +7,7 @@ import * as z from 'zod'
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  status: z.enum(['TODO', 'IN_PROGRESS', 'COMPLETED']).default('TODO'),
+  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']).default('ACTIVE'),
   priority: z.enum(['P0', 'P1', 'P2', 'P3']).default('P1'),
   severity: z.enum(['S0', 'S1', 'S2', 'S3']).default('S1'),
   dueDate: z.string().optional().nullable(),

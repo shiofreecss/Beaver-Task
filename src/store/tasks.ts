@@ -18,6 +18,22 @@ export const SEVERITY_LABELS: Record<SeverityLevel, string> = {
   'S3': 'Critical'
 }
 
+export const TASK_STATUS_COLORS = {
+  'ACTIVE': 'bg-blue-500',
+  'PLANNING': 'bg-yellow-500',
+  'IN_PROGRESS': 'bg-purple-500',
+  'ON_HOLD': 'bg-gray-500',
+  'COMPLETED': 'bg-green-500'
+} as const
+
+export const TASK_STATUS_LABELS = {
+  'ACTIVE': 'Active',
+  'PLANNING': 'Planning',
+  'IN_PROGRESS': 'In Progress',
+  'ON_HOLD': 'On Hold',
+  'COMPLETED': 'Completed'
+} as const
+
 export interface KanbanColumn {
   id: string
   name: string
@@ -309,7 +325,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         body: JSON.stringify({ columnId }),
       })
 
-      if (!response.ok) throw new Error('Failed to move task')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to move task')
+      }
       
       const updatedTask = await response.json()
       set((state) => ({

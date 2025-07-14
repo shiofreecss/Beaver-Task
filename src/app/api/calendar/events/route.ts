@@ -87,7 +87,10 @@ export async function GET() {
         title: task.title,
         start: task.dueDate,
         allDay: true,
-        color: task.status === 'COMPLETED' ? '#22c55e' : '#f97316',
+        color: task.status === 'COMPLETED' ? '#22c55e' : 
+               task.status === 'IN_PROGRESS' ? '#a855f7' :
+               task.status === 'PLANNING' ? '#eab308' :
+               task.status === 'ON_HOLD' ? '#6b7280' : '#3b82f6',
         type: 'task' as const,
       })),
 

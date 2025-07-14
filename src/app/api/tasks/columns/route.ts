@@ -11,6 +11,18 @@ export async function GET() {
     }
 
     const columns = await prisma.kanbanColumn.findMany({
+      where: {
+        OR: [
+          {
+            projectId: null // Global columns
+          },
+          {
+            project: {
+              userId: session.user.id as string
+            }
+          }
+        ]
+      },
       orderBy: {
         order: 'asc'
       }

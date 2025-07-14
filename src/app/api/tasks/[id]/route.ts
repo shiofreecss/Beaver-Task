@@ -4,10 +4,10 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import * as z from 'zod'
 
-const taskUpdateSchema = z.object({
+const taskSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   description: z.string().optional(),
-  status: z.enum(['TODO', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']).optional(),
   priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
   severity: z.enum(['S0', 'S1', 'S2', 'S3']).optional(),
   dueDate: z.string().optional().nullable(),
@@ -27,7 +27,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const validatedData = taskUpdateSchema.parse(body)
+    const validatedData = taskSchema.parse(body)
 
     // Verify the task exists and belongs to the user
     const existingTask = await prisma.task.findFirst({

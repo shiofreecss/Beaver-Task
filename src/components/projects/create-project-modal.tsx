@@ -73,6 +73,7 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
   const statusOptions = [
     { value: 'ACTIVE', label: 'Active' },
     { value: 'PLANNING', label: 'Planning' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
     { value: 'ON_HOLD', label: 'On Hold' },
     { value: 'COMPLETED', label: 'Completed' }
   ]

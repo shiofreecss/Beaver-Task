@@ -53,7 +53,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
     description: '',
     priority: 'P1',
     severity: 'S1',
-    status: 'TODO',
+    status: 'ACTIVE',
     dueDate: '',
     projectId: projectId || 'none',
   })
@@ -69,7 +69,7 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
         description: '',
         priority: 'P1',
         severity: 'S1',
-        status: 'TODO',
+        status: 'ACTIVE',
         dueDate: '',
         projectId: projectId || 'none',
       })
@@ -89,8 +89,10 @@ export function CreateTaskModal({ open, onOpenChange, onSubmit, projects = [], p
   }))
 
   const statusOptions = [
-    { value: 'TODO', label: 'To Do' },
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'PLANNING', label: 'Planning' },
     { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'ON_HOLD', label: 'On Hold' },
     { value: 'COMPLETED', label: 'Completed' }
   ]
 

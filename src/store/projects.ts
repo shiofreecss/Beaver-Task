@@ -5,7 +5,7 @@ export interface Project {
   id: string
   name: string
   description?: string
-  status: 'ACTIVE' | 'PLANNING' | 'ON_HOLD' | 'COMPLETED'
+  status: 'ACTIVE' | 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED'
   organizationId: string
   color: string
   dueDate?: string
@@ -16,6 +16,7 @@ export interface Project {
 export const PROJECT_STATUS_COLORS = {
   'ACTIVE': 'bg-blue-500',
   'PLANNING': 'bg-yellow-500',
+  'IN_PROGRESS': 'bg-purple-500',
   'ON_HOLD': 'bg-gray-500',
   'COMPLETED': 'bg-green-500'
 } as const
@@ -23,6 +24,7 @@ export const PROJECT_STATUS_COLORS = {
 export const PROJECT_STATUS_LABELS = {
   'ACTIVE': 'Active',
   'PLANNING': 'Planning',
+  'IN_PROGRESS': 'In Progress',
   'ON_HOLD': 'On Hold',
   'COMPLETED': 'Completed'
 } as const
@@ -67,10 +69,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateProject: async (id, project) => {
     try {
-      const response = await fetch(`/api/projects/${id}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/projects', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           ...project,
           color: project.color ? getTailwindClass(project.color) : undefined
         }),

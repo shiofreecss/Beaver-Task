@@ -19,6 +19,7 @@ import { TasksView } from '@/components/tasks/tasks-view'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { getTailwindColor } from '@/lib/utils'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 
 interface ProjectsViewProps {
   organizationId?: string
@@ -73,7 +74,6 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
         status: projectData.status,
         dueDate: projectData.dueDate,
         color: projectData.color,
-        progress: 0,
         organizationId: organizationId || projectData.organizationId
       })
       setShowCreateModal(false)
@@ -152,6 +152,39 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   const getStatusLabel = (status: string) => {
     return PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS] || status
   }
+
+  const handleDragEnd = async (result: any) => {
+    console.log('Drag ended:', result)
+    if (!result.destination) {
+      console.log('No destination provided')
+      return
+    }
+
+    const projectId = result.draggableId;
+    const newStatus = result.destination.droppableId;
+    const project = projects.find(p => p.id === projectId);
+
+    if (!project || project.status === newStatus) {
+      console.log('Same status or project not found')
+      return
+    }
+
+    try {
+      console.log('Updating project:', { projectId, newStatus })
+      await updateProject(projectId, { status: newStatus });
+      toast({
+        title: "Success",
+        description: `Project status changed to ${getStatusLabel(newStatus)}`,
+      });
+    } catch (error) {
+      console.error('Error moving project:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update project status. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const viewModeButtons = [
     { mode: 'grid' as ViewMode, icon: Grid3X3, label: 'Grid' },
@@ -405,91 +438,129 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   )
 
   const renderKanbanView = () => {
-    const statusColumns = [
-      { key: 'PLANNING', label: 'Planning', color: 'bg-blue-100 border-blue-300' },
-      { key: 'IN_PROGRESS', label: 'In Progress', color: 'bg-yellow-100 border-yellow-300' },
-      { key: 'COMPLETED', label: 'Completed', color: 'bg-green-100 border-green-300' },
-      { key: 'ON_HOLD', label: 'On Hold', color: 'bg-gray-100 border-gray-300' }
-    ]
+    const statuses = ['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'];
+    
+    // Show a message if no projects are available
+    if (filteredProjects.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No projects available.</p>
+          <Button 
+            onClick={() => setShowCreateModal(true)}
+            className="mt-4"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create First Project
+          </Button>
+        </div>
+      )
+    }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statusColumns.map((column) => (
-          <div key={column.key} className={`rounded-lg border-2 ${column.color} p-4`}>
-            <h3 className="font-semibold mb-4 flex items-center justify-between">
-              {column.label}
-              <Badge variant="secondary">
-                {filteredProjects.filter(p => p.status === column.key).length}
-              </Badge>
-            </h3>
-            <div className="space-y-3">
-              {filteredProjects
-                .filter(project => project.status === column.key)
-                .map((project) => (
-                  <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: getTailwindColor(project.color) }}
-                          />
-                          <h4 className="font-medium text-sm truncate">{project.name}</h4>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-5 gap-4 overflow-x-auto min-h-[600px]">
+          {statuses.map((status) => {
+            const columnProjects = filteredProjects.filter(p => p.status === status)
+            return (
+              <Droppable key={status} droppableId={status}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`rounded-lg border-2 ${snapshot.isDraggingOver ? 'bg-muted/50' : ''}`}
+                  >
+                    <div className="p-4 rounded-t-lg bg-gray-500">
+                      <h3 className="font-semibold text-white flex items-center justify-between">
+                        {PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS]}
+                        <Badge variant="secondary" className="bg-white/10 text-white">
+                          {columnProjects.length}
+                        </Badge>
+                      </h3>
+                    </div>
+                    <div className="bg-card p-2 rounded-b-lg min-h-[500px] border border-border">
+                      {columnProjects.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          No projects in this status
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => setEditingProject(project)}>
-                              <Pencil className="mr-2 h-3 w-3" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteProject(project.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-3 w-3" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      {project.description && (
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {project.description}
-                        </p>
+                      ) : (
+                        columnProjects.map((project, index) => (
+                          <Draggable
+                            key={project.id}
+                            draggableId={project.id}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`mb-3 ${snapshot.isDragging ? 'rotate-2' : ''}`}
+                              >
+                                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div 
+                                          className="w-3 h-3 rounded-full" 
+                                          style={{ backgroundColor: getTailwindColor(project.color) }}
+                                        />
+                                        <div>
+                                          <h4 className="font-medium">{project.name}</h4>
+                                          {project.description && (
+                                            <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm">
+                                            <MoreVertical className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                          <DropdownMenuItem onClick={() => setEditingProject(project)}>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Edit
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem 
+                                            onClick={() => handleDeleteProject(project.id)}
+                                            className="text-destructive"
+                                          >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                    <div className="mt-3 space-y-2">
+                                      <div className="flex justify-between text-sm">
+                                        <span>Progress</span>
+                                        <span>{getCompletionPercentage(project.id)}%</span>
+                                      </div>
+                                      <Progress value={getCompletionPercentage(project.id)} className="h-1.5" />
+                                    </div>
+                                    {project.dueDate && (
+                                      <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))
                       )}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span>{getTaskCount(project.id)} tasks</span>
-                          <span>{getCompletionPercentage(project.id)}%</span>
-                        </div>
-                        <Progress value={getCompletionPercentage(project.id)} className="h-1" />
-                        {project.dueDate && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(project.dueDate).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedProjectId(project.id)}
-                          className="w-full h-6 text-xs"
-                        >
-                          View Tasks
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
+                      {provided.placeholder}
+                    </div>
+                  </div>
+                )}
+              </Droppable>
+            )
+          })}
+        </div>
+      </DragDropContext>
     )
   }
 

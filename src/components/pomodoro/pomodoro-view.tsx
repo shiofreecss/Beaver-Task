@@ -38,6 +38,7 @@ interface PomodoroSession {
 
 export function PomodoroView() {
   const [viewMode, setViewMode] = useState<ViewMode>('timer')
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [selectedTaskId, setSelectedTaskId] = useState<string>('')
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const { toast } = useToast()
@@ -45,6 +46,11 @@ export function PomodoroView() {
   // Get tasks and projects from stores
   const tasks = useTaskStore((state) => state.tasks)
   const projects = useProjectStore((state) => state.projects)
+
+  // Filter tasks by selected project
+  const projectTasks = selectedProjectId 
+    ? tasks.filter(task => task.projectId === selectedProjectId)
+    : tasks
 
   // Get pomodoro state and actions from store
   const {
@@ -287,29 +293,57 @@ export function PomodoroView() {
             ))}
           </div>
 
-          {/* Task Selector */}
-          <div className="max-w-md mx-auto">
-            <label className="block text-sm font-medium mb-2">
-              Select Task (Optional)
-            </label>
-            <Select value={selectedTaskId || "none"} onValueChange={(value) => setSelectedTaskId(value === "none" ? "" : value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a task to work on" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No specific task</SelectItem>
-                {tasks.map((task) => (
-                  <SelectItem key={task.id} value={task.id}>
-                    {task.title}
-                    {task.projectId && (
-                      <span className="text-muted-foreground ml-2">
-                        ({projects.find(p => p.id === task.projectId)?.name})
-                      </span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Project and Task Selector */}
+          <div className="max-w-md mx-auto space-y-4">
+            {/* Project Selector */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Project (Optional)
+              </label>
+              <Select 
+                value={selectedProjectId || "none"} 
+                onValueChange={(value) => {
+                  const newProjectId = value === "none" ? "" : value;
+                  setSelectedProjectId(newProjectId);
+                  setSelectedTaskId(""); // Reset task selection when project changes
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific project</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Task Selector */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Task (Optional)
+              </label>
+              <Select 
+                value={selectedTaskId || "none"} 
+                onValueChange={(value) => setSelectedTaskId(value === "none" ? "" : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a task to work on" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific task</SelectItem>
+                  {projectTasks.map((task) => (
+                    <SelectItem key={task.id} value={task.id}>
+                      {task.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Session Counter */}

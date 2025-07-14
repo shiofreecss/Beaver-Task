@@ -7,7 +7,7 @@ import * as z from 'zod'
 const projectSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
-  status: z.enum(['ACTIVE', 'PLANNING', 'ON_HOLD', 'COMPLETED']).default('ACTIVE'),
+  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']),
   color: z.string().optional(),
   dueDate: z.string().optional().nullable(),
   organizationId: z.string().optional().nullable(),
@@ -96,38 +96,55 @@ export async function PUT(req: Request) {
 
     const body = await req.json()
     const { id, ...updateData } = body
-    const validatedData = projectSchema.parse(updateData)
-
+    
     if (!id) {
-      return new NextResponse('Project ID is required', { status: 400 })
+      return new NextResponse(JSON.stringify({ error: 'Project ID is required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
-    const project = await prisma.project.update({
-      where: {
-        id,
-        userId: session.user.id as string
-      },
-      data: {
-        ...validatedData,
-        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null
-      },
-      include: {
-        organization: {
-          select: {
-            id: true,
-            name: true
+    try {
+      const validatedData = projectSchema.parse(updateData)
+      
+      const project = await prisma.project.update({
+        where: {
+          id,
+          userId: session.user.id as string
+        },
+        data: {
+          ...validatedData,
+          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null
+        },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true
+            }
           }
         }
-      }
-    })
+      })
 
-    return NextResponse.json(project)
+      return NextResponse.json(project)
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return new NextResponse(JSON.stringify({ 
+          error: 'Invalid request data',
+          details: validationError.errors 
+        }), { 
+          status: 422,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+      throw validationError
+    }
   } catch (error) {
     console.error('Error updating project:', error)
-    if (error instanceof z.ZodError) {
-      return new NextResponse('Invalid request data', { status: 422 })
-    }
-    return new NextResponse('Internal Error', { status: 500 })
+    return new NextResponse(JSON.stringify({ error: 'Internal Error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
 
