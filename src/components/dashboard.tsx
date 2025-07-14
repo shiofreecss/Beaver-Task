@@ -8,7 +8,8 @@ import {
   FileText, 
   Target, 
   Timer,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from 'lucide-react'
 import { OrganizationsView } from '@/components/organizations/organizations-view'
 import { ProjectsView } from '@/components/projects/projects-view'
@@ -16,6 +17,7 @@ import { TasksView } from '@/components/tasks/tasks-view'
 import { NotesView } from '@/components/notes/notes-view'
 import { HabitsView } from '@/components/habits/habits-view'
 import { PomodoroView } from '@/components/pomodoro/pomodoro-view'
+import CalendarView from '@/components/calendar/calendar-view'
 import { Sidebar } from '@/components/sidebar'
 import { useTaskStore } from '@/store/tasks'
 import { useProjectStore } from '@/store/projects'
@@ -28,7 +30,7 @@ function DashboardOverview() {
   const habits = useHabitStore(state => state.habits)
   const sessions = usePomodoroStore(state => state.sessions)
   const completedTasks = tasks.filter(task => task.status === 'COMPLETED').length
-  const activeProjects = projects.filter(project => project.status === 'active').length
+  const activeProjects = projects.filter(project => project.status === 'in_progress').length
   const completedHabits = habits.filter(habit => habit.completedToday).length
   const focusMinutes = sessions.reduce((acc, session) => acc + (session.duration || 0), 0)
 
@@ -94,6 +96,8 @@ export function Dashboard() {
         return <HabitsView />
       case 'pomodoro':
         return <PomodoroView />
+      case 'calendar':
+        return <CalendarView />
       default:
         return <DashboardOverview />
     }

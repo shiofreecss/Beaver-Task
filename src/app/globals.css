@@ -32,37 +32,37 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
  
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 8.5%;
+    --foreground: 0 0% 98%;
  
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 98%;
  
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 98%;
  
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 222.2 84% 4.9%;
  
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
  
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
  
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
  
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
  
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 221.2 83.2% 53.3%;
   }
 }
  
@@ -73,4 +73,88 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+  .card-hover {
+    @apply hover:bg-accent/50 transition-colors duration-200;
+  }
+  
+  .modal-content {
+    @apply bg-card rounded-lg border shadow-lg;
+  }
+  
+  .input-field {
+    @apply bg-secondary/50 border-0 focus:ring-2 focus:ring-ring focus:ring-offset-0;
+  }
+  
+  .button-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-colors;
+  }
+  
+  .button-secondary {
+    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm transition-colors;
+  }
+}
+
+/* FullCalendar Dark Theme Overrides */
+.dark-theme {
+  --fc-border-color: hsl(var(--border));
+  --fc-button-text-color: hsl(var(--primary-foreground));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+  --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+  --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
+  --fc-more-link-bg-color: hsl(var(--secondary));
+  --fc-more-link-text-color: hsl(var(--secondary-foreground));
+  --fc-non-business-color: rgba(0, 0, 0, 0.12);
+  --fc-today-bg-color: hsl(var(--muted));
+  --fc-now-indicator-color: hsl(var(--destructive));
+  --fc-list-event-hover-bg-color: hsl(var(--accent));
+  --fc-highlight-color: hsl(var(--accent));
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: hsl(var(--card));
+  --fc-neutral-text-color: hsl(var(--card-foreground));
+}
+
+.dark-theme .fc-theme-standard td,
+.dark-theme .fc-theme-standard th {
+  border-color: hsl(var(--border));
+}
+
+.dark-theme .fc .fc-daygrid-day-number,
+.dark-theme .fc .fc-col-header-cell-cushion {
+  color: hsl(var(--foreground));
+}
+
+.dark-theme .fc-day-today {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.dark-theme .fc-button-primary {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark-theme .fc-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.9) !important;
+  border-color: hsl(var(--primary) / 0.9) !important;
+}
+
+.dark-theme .fc-button-primary:disabled {
+  background-color: hsl(var(--primary) / 0.5) !important;
+  border-color: hsl(var(--primary) / 0.5) !important;
+}
+
+.dark-theme .fc-button-primary:not(:disabled):active,
+.dark-theme .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: hsl(var(--primary) / 0.8) !important;
+  border-color: hsl(var(--primary) / 0.8) !important;
 } 

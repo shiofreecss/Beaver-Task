@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User, LogOut } from 'lucide-react'
+import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User, LogOut, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useSession, signOut } from 'next-auth/react'
@@ -27,6 +27,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'habits', label: 'Habits', icon: Target },
     { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
   ]
 
   const handleLogout = async () => {
