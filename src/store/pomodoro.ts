@@ -39,6 +39,7 @@ interface PomodoroStore {
   
   // Session actions
   fetchSessions: () => Promise<void>
+  deleteSession: (id: string) => Promise<void>
   getTodayFocusTime: () => number // Returns focus time in hours
 }
 
@@ -191,6 +192,23 @@ export const usePomodoroStore = create<PomodoroStore>()(
           set({ sessions, isLoading: false })
         } catch (error) {
           set({ error: (error as Error).message, isLoading: false })
+        }
+      },
+
+      deleteSession: async (id: string) => {
+        try {
+          const response = await fetch(`/api/pomodoro?id=${id}`, {
+            method: 'DELETE'
+          })
+          
+          if (!response.ok) throw new Error('Failed to delete session')
+          
+          set(state => ({
+            sessions: state.sessions.filter(session => session.id !== id)
+          }))
+        } catch (error) {
+          console.error('Failed to delete session:', error)
+          set({ error: (error as Error).message })
         }
       },
 

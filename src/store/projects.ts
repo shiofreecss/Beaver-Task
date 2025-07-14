@@ -92,7 +92,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   deleteProject: async (id) => {
     try {
-      const response = await fetch(`/api/projects/${id}`, {
+      const response = await fetch(`/api/projects?id=${id}`, {
         method: 'DELETE'
       })
       

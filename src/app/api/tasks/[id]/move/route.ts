@@ -58,15 +58,30 @@ export async function PATCH(
     }
 
     // Update the task's column and status
-    const updatedTask = await prisma.task.update({
+    const columnIdToStatus: Record<string, string> = {
+      'todo': 'TODO',
+      'in_progress': 'IN_PROGRESS',
+      'completed': 'COMPLETED'
+    }
+
+    // First update the task
+    await prisma.$executeRaw`
+      UPDATE Task
+      SET columnId = ${columnId},
+          status = ${column.projectId ? column.name.toUpperCase().replace(/\s+/g, '_') : columnIdToStatus[columnId] || column.name.toUpperCase().replace(/\s+/g, '_')}
+      WHERE id = ${params.id}
+    `
+
+    // Fetch the updated task to return
+    const result = await prisma.task.findUnique({
       where: { id: params.id },
-      data: {
-        columnId,
-        status: column.name.toUpperCase().replace(/\s+/g, '_')
+      include: {
+        project: true,
+        column: true
       }
     })
 
-    return NextResponse.json(updatedTask)
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error moving task:', error)
     return new NextResponse('Internal Server Error', { status: 500 })

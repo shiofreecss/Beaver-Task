@@ -511,27 +511,52 @@ export function TasksView({ projectId }: TasksViewProps) {
 
     // If no custom columns exist for this project, use default columns
     const columnsToUse = projectColumns.length > 0 ? projectColumns : [
-      { id: 'TODO', name: 'To Do', color: 'bg-gray-100 dark:bg-zinc-900', order: 0 },
-      { id: 'IN_PROGRESS', name: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900', order: 1 },
-      { id: 'COMPLETED', name: 'Completed', color: 'bg-green-100 dark:bg-green-900', order: 2 }
+      { id: 'todo', name: 'To Do', color: 'bg-gray-100 dark:bg-zinc-900', order: 0 },
+      { id: 'in_progress', name: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900', order: 1 },
+      { id: 'completed', name: 'Completed', color: 'bg-green-100 dark:bg-green-900', order: 2 }
     ]
 
+    const getTasksForColumn = (columnId: string) => {
+      return filteredTasks.filter(task => {
+        // If task has a columnId, use that
+        if (task.columnId) {
+          return task.columnId === columnId
+        }
+        // Otherwise, map the task's status to the default column id
+        const statusToColumnId: Record<string, string> = {
+          'TODO': 'todo',
+          'IN_PROGRESS': 'in_progress',
+          'COMPLETED': 'completed'
+        }
+        return statusToColumnId[task.status] === columnId
+      })
+    }
+
     const handleDragEnd = async (result: DropResult) => {
-      if (!result.destination) return
+      console.log('Drag ended:', result)
+      if (!result.destination) {
+        console.log('No destination provided')
+        return
+      }
 
       const taskId = result.draggableId
       const sourceColumnId = result.source.droppableId
       const destinationColumnId = result.destination.droppableId
 
-      if (sourceColumnId === destinationColumnId) return
+      if (sourceColumnId === destinationColumnId) {
+        console.log('Same column, no action needed')
+        return
+      }
 
       try {
+        console.log('Moving task:', { taskId, sourceColumnId, destinationColumnId })
         await moveTask(taskId, destinationColumnId)
         toast({
           title: 'Success',
           description: 'Task moved successfully',
         })
       } catch (error) {
+        console.error('Error moving task:', error)
         toast({
           title: 'Error',
           description: 'Failed to move task',
@@ -554,88 +579,86 @@ export function TasksView({ projectId }: TasksViewProps) {
                   <h3 className="font-semibold mb-4 flex items-center justify-between">
                     {column.name}
                     <Badge variant="secondary">
-                      {filteredTasks.filter(t => t.columnId === column.id || (!t.columnId && t.status === column.id)).length}
+                      {getTasksForColumn(column.id).length}
                     </Badge>
                   </h3>
                   <div className="space-y-3">
-                    {filteredTasks
-                      .filter(task => task.columnId === column.id || (!task.columnId && task.status === column.id))
-                      .map((task, index) => (
-                        <Draggable
-                          key={task.id}
-                          draggableId={task.id}
-                          index={index}
-                        >
-                          {(provided) => (
-                            <Card
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(task.priority, task.severity)}`}
-                            >
-                              <CardContent className="p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-sm truncate">{task.title}</h4>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                      <DropdownMenuItem onClick={() => setEditingTask(task)}>
-                                        <Pencil className="mr-2 h-3 w-3" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        onClick={() => handleDeleteTask(task.id)}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="mr-2 h-3 w-3" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                    {getTasksForColumn(column.id).map((task, index) => (
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
+                        index={index}
+                      >
+                        {(provided) => (
+                          <Card
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(task.priority, task.severity)}`}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-sm truncate">{task.title}</h4>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                      <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                                      <Pencil className="mr-2 h-3 w-3" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteTask(task.id)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-3 w-3" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              {task.description && (
+                                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                  {task.description}
+                                </p>
+                              )}
+                              <div className="space-y-2">
+                                <div className="flex gap-1">
+                                  <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-xs`}>
+                                    {PRIORITY_LABELS[task.priority]}
+                                  </Badge>
+                                  <Badge variant="outline" className={`${getSeverityColor(task.severity)} text-xs`}>
+                                    {SEVERITY_LABELS[task.severity]}
+                                  </Badge>
                                 </div>
-                                {task.description && (
-                                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                                    {task.description}
-                                  </p>
-                                )}
-                                <div className="space-y-2">
-                                  <div className="flex gap-1">
-                                    <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-xs`}>
-                                      {PRIORITY_LABELS[task.priority]}
-                                    </Badge>
-                                    <Badge variant="outline" className={`${getSeverityColor(task.severity)} text-xs`}>
-                                      {SEVERITY_LABELS[task.severity]}
-                                    </Badge>
+                                {task.dueDate && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
                                   </div>
-                                  {task.dueDate && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Calendar className="h-3 w-3" />
-                                      <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                                    </div>
-                                  )}
-                                  {task.projectId && !projectId && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {projects.find(p => p.id === task.projectId)?.name || 'Unknown'}
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleTask(task.id)}
-                                    className="w-full h-6 text-xs"
-                                  >
-                                    {task.status === 'COMPLETED' ? 'Reopen' : 'Complete'}
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </Draggable>
-                      ))}
+                                )}
+                                {task.projectId && !projectId && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {projects.find(p => p.id === task.projectId)?.name || 'Unknown'}
+                                  </div>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleTask(task.id)}
+                                  className="w-full h-6 text-xs"
+                                >
+                                  {task.status === 'COMPLETED' ? 'Reopen' : 'Complete'}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </Draggable>
+                    ))}
                     {provided.placeholder}
                   </div>
                 </div>

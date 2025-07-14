@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Play, Pause, RotateCcw, Settings, Timer, CheckCircle2, X, BarChart3, History, Clock } from 'lucide-react'
+import { Play, Pause, RotateCcw, Settings, Timer, CheckCircle2, X, BarChart3, History, Clock, Trash2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useTaskStore } from '@/store/tasks'
@@ -12,6 +12,7 @@ import { usePomodoroStore } from '@/store/pomodoro'
 import { pomodoroService } from '@/lib/pomodoro-service'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type ViewMode = 'timer' | 'statistics' | 'history'
 
@@ -38,6 +39,7 @@ interface PomodoroSession {
 export function PomodoroView() {
   const [viewMode, setViewMode] = useState<ViewMode>('timer')
   const [selectedTaskId, setSelectedTaskId] = useState<string>('')
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const { toast } = useToast()
 
   // Get tasks and projects from stores
@@ -54,7 +56,8 @@ export function PomodoroView() {
     resumeTimer,
     resetTimer,
     completeSession,
-    fetchSessions
+    fetchSessions,
+    deleteSession
   } = usePomodoroStore()
 
   const sessionTypes: Record<SessionType, SessionConfig> = {
@@ -159,6 +162,23 @@ export function PomodoroView() {
     if (!task?.projectId) return null
     const project = projects.find(p => p.id === task.projectId)
     return project?.name || null
+  }
+
+  const handleDeleteSession = async (id: string) => {
+    try {
+      await deleteSession(id)
+      toast({
+        title: "Session deleted",
+        description: "The pomodoro session has been removed from your history.",
+      })
+      setSessionToDelete(null)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the session. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   const viewModeButtons = [
@@ -441,8 +461,19 @@ export function PomodoroView() {
                       </div>
                     )}
                   </div>
-                  <div className="text-sm font-medium">
-                    {Math.round(session.duration / 60)} min
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm font-medium">
+                      {Math.round(session.duration / 60)} min
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSessionToDelete(session.id)}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete session</span>
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -450,6 +481,29 @@ export function PomodoroView() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Session</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this pomodoro session? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setSessionToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => sessionToDelete && handleDeleteSession(sessionToDelete)}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 
