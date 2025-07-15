@@ -362,9 +362,6 @@ export function OrganizationsView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
-          <p className="text-muted-foreground">
-            Manage your organizations and their projects
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}

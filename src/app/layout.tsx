@@ -9,8 +9,16 @@ import { SessionProvider } from '@/components/session-provider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Beaver Task Manager',
+  title: 'Beaver Task',
   description: 'A comprehensive task, project, and habit management platform',
+  icons: {
+    icon: [
+      {
+        url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🦫</text></svg>',
+        type: 'image/svg+xml',
+      },
+    ],
+  },
 }
 
 export default function RootLayout({

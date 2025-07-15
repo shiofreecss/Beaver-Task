@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table, Columns } from 'lucide-react'
+import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table, Columns, Filter } from 'lucide-react'
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import {
   DropdownMenu,
@@ -11,6 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from "@/components/ui/use-toast"
 import { useProjectStore, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '@/store/projects'
 import { useTaskStore } from '@/store/tasks'
@@ -33,6 +40,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedOrganizationFilter, setSelectedOrganizationFilter] = useState<string>('all')
 
   // Get projects, tasks, and organizations from stores
   const projects = useProjectStore((state) => state.projects)
@@ -42,16 +50,17 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   const deleteProject = useProjectStore((state) => state.deleteProject)
   const tasks = useTaskStore((state) => state.tasks)
   const organizations = useOrganizationStore((state) => state.organizations)
+  const fetchOrganizations = useOrganizationStore((state) => state.fetchOrganizations)
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        await fetchProjects()
+        await Promise.all([fetchProjects(), fetchOrganizations()])
       } catch (error) {
-        console.error('Failed to fetch projects:', error)
+        console.error('Failed to fetch data:', error)
         toast({
           title: "Error",
-          description: "Failed to load projects. Please try again.",
+          description: "Failed to load data. Please try again.",
           variant: "destructive"
         })
       } finally {
@@ -59,12 +68,25 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
       }
     }
     loadData()
-  }, [fetchProjects])
+  }, [fetchProjects, fetchOrganizations])
 
   // Filter projects by organization if organizationId is provided
-  const filteredProjects = organizationId 
-    ? projects.filter(project => project.organizationId === organizationId)
-    : projects
+  // Also apply organization filter if selectedOrganizationFilter is set
+  const filteredProjects = projects.filter(project => {
+    // If we're in a specific organization view, filter by that organization
+    if (organizationId && project.organizationId !== organizationId) return false
+    
+    // If we're in the general projects view and an organization filter is selected
+    if (!organizationId && selectedOrganizationFilter !== 'all') {
+      if (selectedOrganizationFilter === 'no-organization') {
+        return !project.organizationId
+      } else {
+        return project.organizationId === selectedOrganizationFilter
+      }
+    }
+    
+    return true
+  })
 
   const handleCreateProject = async (projectData: any) => {
     try {
@@ -178,6 +200,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
       });
     } catch (error) {
       console.error('Error moving project:', error)
+      console.error('Error details:', error instanceof Error ? error.message : error)
       toast({
         title: "Error",
         description: "Failed to update project status. Please try again.",
@@ -194,25 +217,25 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   ]
 
   const renderGridView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
       {filteredProjects.map((project) => (
         <Card key={project.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0">
                 <div 
-                  className="w-4 h-4 rounded-full" 
+                  className="w-3 h-3 md:w-4 md:h-4 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: getTailwindColor(project.color) }}
                 />
-                <CardTitle className="text-lg">{project.name}</CardTitle>
+                <CardTitle className="text-base md:text-lg truncate">{project.name}</CardTitle>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="flex-shrink-0 h-8 w-8 p-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setEditingProject(project)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
@@ -228,39 +251,39 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
               </DropdownMenu>
             </div>
             {project.description && (
-              <CardDescription className="mt-2">{project.description}</CardDescription>
+              <CardDescription className="mt-2 text-sm line-clamp-2">{project.description}</CardDescription>
             )}
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white`}>
+                <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white text-xs`}>
                   {getStatusLabel(project.status)}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs md:text-sm text-muted-foreground">
                   {getTaskCount(project.id)} tasks
                 </span>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span>Progress</span>
                   <span>{getCompletionPercentage(project.id)}%</span>
                 </div>
-                <Progress value={getCompletionPercentage(project.id)} className="h-2" />
+                <Progress value={getCompletionPercentage(project.id)} className="h-1.5 md:h-2" />
               </div>
               {project.dueDate && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                  <Calendar className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                  <span className="truncate">Due {new Date(project.dueDate).toLocaleDateString()}</span>
                 </div>
               )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedProjectId(project.id)}
-                className="w-full"
+                className="w-full h-8 text-xs md:text-sm"
               >
-                <ChevronRight className="h-4 w-4 mr-2" />
+                <ChevronRight className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 View Tasks
               </Button>
             </div>
@@ -271,52 +294,53 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   )
 
   const renderListView = () => (
-    <div className="space-y-3">
+    <div className="space-y-2 md:space-y-3">
       {filteredProjects.map((project) => (
         <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
+              <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
                 <div 
-                  className="w-4 h-4 rounded-full flex-shrink-0" 
+                  className="w-3 h-3 md:w-4 md:h-4 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: getTailwindColor(project.color) }}
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg truncate">{project.name}</h3>
+                  <h3 className="font-semibold text-sm md:text-lg truncate">{project.name}</h3>
                   {project.description && (
-                    <p className="text-sm text-muted-foreground truncate">{project.description}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground truncate">{project.description}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white`}>
+                <div className="hidden sm:flex items-center gap-2 md:gap-3">
+                  <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white text-xs`}>
                     {getStatusLabel(project.status)}
                   </Badge>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
                     {getTaskCount(project.id)} tasks
                   </span>
-                  <div className="w-24">
-                    <Progress value={getCompletionPercentage(project.id)} className="h-2" />
+                  <div className="w-16 md:w-24">
+                    <Progress value={getCompletionPercentage(project.id)} className="h-1.5 md:h-2" />
                   </div>
-                  <span className="text-sm font-medium w-8 text-right">
+                  <span className="text-xs md:text-sm font-medium w-6 md:w-8 text-right">
                     {getCompletionPercentage(project.id)}%
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 md:gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedProjectId(project.id)}
+                  className="h-8 w-8 p-0"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
+                  <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditingProject(project)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
@@ -332,6 +356,23 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                 </DropdownMenu>
               </div>
             </div>
+            {/* Mobile-only status and progress info */}
+            <div className="sm:hidden mt-3 flex items-center justify-between">
+              <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white text-xs`}>
+                {getStatusLabel(project.status)}
+              </Badge>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {getTaskCount(project.id)} tasks
+                </span>
+                <div className="w-16">
+                  <Progress value={getCompletionPercentage(project.id)} className="h-1.5" />
+                </div>
+                <span className="text-xs font-medium">
+                  {getCompletionPercentage(project.id)}%
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ))}
@@ -342,53 +383,53 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
     <Card>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[600px]">
             <thead className="border-b">
               <tr>
-                <th className="text-left p-4 font-semibold">Project</th>
-                <th className="text-left p-4 font-semibold">Status</th>
-                <th className="text-left p-4 font-semibold">Progress</th>
-                <th className="text-left p-4 font-semibold">Tasks</th>
-                <th className="text-left p-4 font-semibold">Due Date</th>
-                <th className="text-left p-4 font-semibold">Actions</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm">Project</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm">Status</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm">Progress</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm">Tasks</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm hidden md:table-cell">Due Date</th>
+                <th className="text-left p-3 md:p-4 font-semibold text-sm">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredProjects.map((project) => (
                 <tr key={project.id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
+                  <td className="p-3 md:p-4">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <div 
-                        className="w-4 h-4 rounded-full" 
+                        className="w-3 h-3 md:w-4 md:h-4 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: getTailwindColor(project.color) }}
                       />
-                      <div>
-                        <span className="font-medium">{project.name}</span>
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm md:text-base">{project.name}</span>
                         {project.description && (
-                          <p className="text-sm text-muted-foreground truncate max-w-xs">
+                          <p className="text-xs md:text-sm text-muted-foreground truncate max-w-[150px] md:max-w-xs">
                             {project.description}
                           </p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="p-4">
-                    <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white`}>
+                  <td className="p-3 md:p-4">
+                    <Badge variant="secondary" className={`${getStatusColor(project.status)} text-white text-xs`}>
                       {getStatusLabel(project.status)}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="p-3 md:p-4">
                     <div className="flex items-center gap-2">
-                      <Progress value={getCompletionPercentage(project.id)} className="h-2 w-20" />
-                      <span className="text-sm font-medium">
+                      <Progress value={getCompletionPercentage(project.id)} className="h-1.5 md:h-2 w-12 md:w-20" />
+                      <span className="text-xs md:text-sm font-medium">
                         {getCompletionPercentage(project.id)}%
                       </span>
                     </div>
                   </td>
-                  <td className="p-4">
-                    <span className="text-sm">{getTaskCount(project.id)} tasks</span>
+                  <td className="p-3 md:p-4">
+                    <span className="text-xs md:text-sm">{getTaskCount(project.id)} tasks</span>
                   </td>
-                  <td className="p-4">
+                  <td className="p-3 md:p-4 hidden md:table-cell">
                     {project.dueDate ? (
                       <span className="text-sm">
                         {new Date(project.dueDate).toLocaleDateString()}
@@ -397,22 +438,23 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                       <span className="text-sm text-muted-foreground">No due date</span>
                     )}
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
+                  <td className="p-3 md:p-4">
+                    <div className="flex items-center gap-1 md:gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setSelectedProjectId(project.id)}
+                        className="h-8 w-8 p-0"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
+                        <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditingProject(project)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
@@ -458,7 +500,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
 
     return (
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-5 gap-4 overflow-x-auto min-h-[600px]">
+        <div className="kanban-container">
           {statuses.map((status) => {
             const columnProjects = filteredProjects.filter(p => p.status === status)
             return (
@@ -467,17 +509,19 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`rounded-lg border-2 ${snapshot.isDraggingOver ? 'bg-muted/50' : ''}`}
+                    className={`kanban-column ${snapshot.isDraggingOver ? 'bg-muted/50' : ''}`}
                   >
-                    <div className="p-4 rounded-t-lg bg-gray-500">
-                      <h3 className="font-semibold text-white flex items-center justify-between">
-                        {PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS]}
-                        <Badge variant="secondary" className="bg-white/10 text-white">
+                    <div className={`p-3 rounded-t-lg ${getStatusColor(status)}`}>
+                      <h3 className="font-semibold text-white text-base flex items-center justify-between">
+                        <span className="truncate pr-2">
+                          {PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS]}
+                        </span>
+                        <Badge variant="secondary" className="bg-white/10 text-white text-xs">
                           {columnProjects.length}
                         </Badge>
                       </h3>
                     </div>
-                    <div className="bg-card p-2 rounded-b-lg min-h-[500px] border border-border">
+                    <div className="bg-card p-3 rounded-b-lg border border-border" style={{ minHeight: 'auto' }}>
                       {columnProjects.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">
                           No projects in this status
@@ -496,28 +540,28 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                                 {...provided.dragHandleProps}
                                 className={`mb-3 ${snapshot.isDragging ? 'rotate-2' : ''}`}
                               >
-                                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                                   <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
+                                    <div className="flex items-start justify-between mb-3">
+                                      <div className="flex items-start gap-2 min-w-0 flex-1">
                                         <div 
-                                          className="w-3 h-3 rounded-full" 
+                                          className="w-3 h-3 rounded-full flex-shrink-0 mt-1" 
                                           style={{ backgroundColor: getTailwindColor(project.color) }}
                                         />
-                                        <div>
-                                          <h4 className="font-medium">{project.name}</h4>
+                                        <div className="min-w-0 flex-1">
+                                          <h4 className="font-medium text-sm truncate">{project.name}</h4>
                                           {project.description && (
-                                            <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
+                                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{project.description}</p>
                                           )}
                                         </div>
                                       </div>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <Button variant="ghost" size="sm">
+                                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 flex-shrink-0">
                                             <MoreVertical className="h-4 w-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
+                                        <DropdownMenuContent align="end">
                                           <DropdownMenuItem onClick={() => setEditingProject(project)}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Edit
@@ -532,17 +576,17 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     </div>
-                                    <div className="mt-3 space-y-2">
-                                      <div className="flex justify-between text-sm">
-                                        <span>Progress</span>
-                                        <span>{getCompletionPercentage(project.id)}%</span>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">{getTaskCount(project.id)} tasks</span>
+                                        <span className="font-medium">{getCompletionPercentage(project.id)}%</span>
                                       </div>
-                                      <Progress value={getCompletionPercentage(project.id)} className="h-1.5" />
+                                      <Progress value={getCompletionPercentage(project.id)} className="h-2" />
                                     </div>
                                     {project.dueDate && (
-                                      <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
+                                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                                        <span className="truncate">Due {new Date(project.dueDate).toLocaleDateString()}</span>
                                       </div>
                                     )}
                                   </CardContent>
@@ -584,13 +628,13 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
     if (!selectedProject) return null
 
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" onClick={() => setSelectedProjectId(null)}>
+      <div className="p-4 md:p-6">
+        <div className="flex items-center gap-2 mb-4 md:mb-6">
+          <Button variant="ghost" onClick={() => setSelectedProjectId(null)} className="text-sm md:text-base">
             {organizationId ? 'Projects' : 'All Projects'}
           </Button>
           <ChevronRight className="h-4 w-4" />
-          <span className="font-semibold">{selectedProject.name}</span>
+          <span className="font-semibold text-sm md:text-base truncate">{selectedProject.name}</span>
         </div>
         <TasksView projectId={selectedProjectId} />
       </div>
@@ -598,52 +642,69 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             {organizationId ? 'Organization Projects' : 'Projects'}
           </h1>
-          <p className="text-muted-foreground">
-            Manage your projects and track their progress
-          </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Organization Filter - only show in general projects view */}
+          {!organizationId && (
+            <Select value={selectedOrganizationFilter} onValueChange={setSelectedOrganizationFilter}>
+              <SelectTrigger className="w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by organization" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Organizations</SelectItem>
+                <SelectItem value="no-organization">No Organization</SelectItem>
+                {organizations.map((organization) => (
+                  <SelectItem key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
           {/* View Mode Toggle */}
-          <div className="flex rounded-lg border p-1">
+          <div className="flex rounded-lg border p-0.5 md:p-1">
             {viewModeButtons.map(({ mode, icon: Icon, label }) => (
               <Button
                 key={mode}
                 variant={viewMode === mode ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode(mode)}
-                className="h-8 px-3"
+                className="h-7 md:h-8 px-2 md:px-3"
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3 w-3 md:h-4 md:w-4" />
                 <span className="sr-only">{label}</span>
               </Button>
             ))}
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
+          <Button onClick={() => setShowCreateModal(true)} className="text-sm md:text-base">
+            <Plus className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">New Project</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12">
-          <p>Loading projects...</p>
+          <p className="text-sm md:text-base">Loading projects...</p>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="text-center py-8 md:py-12">
           <CardContent>
-            <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">📁</div>
-            <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-4">
+            <div className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-4">📁</div>
+            <h3 className="text-base md:text-lg font-semibold mb-2">No projects yet</h3>
+            <p className="text-muted-foreground mb-4 text-sm md:text-base">
               Create your first project to get started
             </p>
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button onClick={() => setShowCreateModal(true)} className="text-sm md:text-base">
               <Plus className="mr-2 h-4 w-4" />
               Create Project
             </Button>

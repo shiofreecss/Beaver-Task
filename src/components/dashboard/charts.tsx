@@ -14,7 +14,7 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2'
 import { Task } from '@/store/tasks'
 import { Project } from '@/store/projects'
-import { Session } from '@/store/pomodoro'
+import type { PomodoroSession } from '@/store/pomodoro'
 
 ChartJS.register(
   CategoryScale,
@@ -31,7 +31,7 @@ ChartJS.register(
 interface DashboardChartsProps {
   tasks: Task[]
   projects: Project[]
-  sessions: Session[]
+  sessions: PomodoroSession[]
 }
 
 export function DashboardCharts({ tasks, projects, sessions }: DashboardChartsProps) {
@@ -40,9 +40,9 @@ export function DashboardCharts({ tasks, projects, sessions }: DashboardChartsPr
     labels: ['To Do', 'In Progress', 'Completed'],
     datasets: [{
       data: [
-        tasks.filter(t => t.status === 'TODO').length,
-        tasks.filter(t => t.status === 'IN_PROGRESS').length,
-        tasks.filter(t => t.status === 'COMPLETED').length
+        tasks.filter(t => t.status === 'TODO' && !t.parentId).length,
+        tasks.filter(t => t.status === 'IN_PROGRESS' && !t.parentId).length,
+        tasks.filter(t => t.status === 'COMPLETED' && !t.parentId).length
       ],
       backgroundColor: ['#ff6384', '#36a2eb', '#4bc0c0'],
     }]
@@ -50,7 +50,7 @@ export function DashboardCharts({ tasks, projects, sessions }: DashboardChartsPr
 
   // Project Progress
   const projectProgress = projects.map(project => {
-    const projectTasks = tasks.filter(t => t.projectId === project.id)
+    const projectTasks = tasks.filter(t => t.projectId === project.id && !t.parentId)
     const completedTasks = projectTasks.filter(t => t.status === 'COMPLETED').length
     return {
       name: project.name,

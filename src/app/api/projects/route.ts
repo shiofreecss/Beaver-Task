@@ -13,6 +13,15 @@ const projectSchema = z.object({
   organizationId: z.string().optional().nullable(),
 })
 
+const projectUpdateSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  description: z.string().optional(),
+  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']).optional(),
+  color: z.string().optional(),
+  dueDate: z.string().optional().nullable(),
+  organizationId: z.string().optional().nullable(),
+})
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -105,7 +114,7 @@ export async function PUT(req: Request) {
     }
 
     try {
-      const validatedData = projectSchema.parse(updateData)
+      const validatedData = projectUpdateSchema.parse(updateData)
       
       const project = await prisma.project.update({
         where: {

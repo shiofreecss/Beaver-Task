@@ -6,24 +6,24 @@ export type SeverityLevel = 'S0' | 'S1' | 'S2' | 'S3'
 
 export const PRIORITY_LABELS: Record<PriorityLevel, string> = {
   'P0': 'Low',
-  'P1': 'Normal',
+  'P1': 'Medium',
   'P2': 'High',
-  'P3': 'Highest'
+  'P3': 'Urgent',
 }
 
 export const SEVERITY_LABELS: Record<SeverityLevel, string> = {
   'S0': 'Low',
-  'S1': 'Normal',
+  'S1': 'Medium',
   'S2': 'High',
-  'S3': 'Critical'
+  'S3': 'Critical',
 }
 
 export const TASK_STATUS_COLORS = {
   'ACTIVE': 'bg-blue-500',
-  'PLANNING': 'bg-yellow-500',
-  'IN_PROGRESS': 'bg-purple-500',
+  'PLANNING': 'bg-orange-500',
+  'IN_PROGRESS': 'bg-yellow-500',
   'ON_HOLD': 'bg-gray-500',
-  'COMPLETED': 'bg-green-500'
+  'COMPLETED': 'bg-green-500',
 } as const
 
 export const TASK_STATUS_LABELS = {
@@ -176,16 +176,67 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
       
       const updatedTask = await response.json()
-      set((state) => ({
-        tasks: state.tasks.map((t) => 
-          t.id === id ? updatedTask : t
+      
+      // Fast path for simple status updates (most common case for subtasks)
+      const isSimpleStatusUpdate = Object.keys(task).length === 1 && 'status' in task
+      
+      set((state) => {
+        if (isSimpleStatusUpdate) {
+          // Efficient update for status-only changes
+          const updateTaskInTree = (tasks: Task[]): Task[] => {
+            return tasks.map(t => {
+              if (t.id === id) {
+                return { ...t, status: updatedTask.status, updatedAt: updatedTask.updatedAt }
+              }
+              if (t.subtasks?.length) {
+                return { ...t, subtasks: updateTaskInTree(t.subtasks) }
+              }
+              return t
+            })
+          }
+          
+          return { tasks: updateTaskInTree(state.tasks) }
+        }
+        
+        // Full hierarchy rebuild for complex updates
+        const tasksMap = new Map<string, Task>(
+          state.tasks.map((t) => [t.id, { ...t }])
         )
-      }))
+
+        // Update the specific task while preserving its subtasks
+        const existingTask = tasksMap.get(id)
+        tasksMap.set(id, { 
+          ...updatedTask, 
+          subtasks: existingTask?.subtasks || [] 
+        })
+
+        // Rebuild the hierarchy
+        state.tasks.forEach((task) => {
+          if (task.parentId && tasksMap.has(task.parentId)) {
+            const parent = tasksMap.get(task.parentId)!
+            const childTask = tasksMap.get(task.id) || task
+            if (!parent.subtasks) {
+              parent.subtasks = []
+            }
+            // Only add if not already in subtasks array
+            if (!parent.subtasks.some(st => st.id === childTask.id)) {
+              parent.subtasks.push(childTask)
+            }
+          }
+        })
+
+        // Return only root tasks (those without parents)
+        return {
+          tasks: Array.from(tasksMap.values()).filter(t => !t.parentId)
+        }
+      })
     } catch (error) {
       console.error('Error updating task:', error)
       throw error
     }
   },
+
+
 
   deleteTask: async (id) => {
     try {

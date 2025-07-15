@@ -35,7 +35,7 @@ function DashboardOverview() {
   const fetchHabits = useHabitStore(state => state.fetchHabits)
   const fetchSessions = usePomodoroStore(state => state.fetchSessions)
 
-  const completedTasks = tasks.filter(task => task.status === 'COMPLETED').length
+  const completedTasks = tasks.filter(task => task.status === 'COMPLETED' && !task.parentId).length
   const activeProjects = projects.filter(project => project.status === 'ACTIVE').length
   const completedHabits = habits.filter(habit => habit.completedToday).length
   const focusMinutes = sessions.reduce((acc, session) => acc + (session.duration || 0), 0)
@@ -137,7 +137,7 @@ export function Dashboard() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto min-w-0">
         {renderContent()}
       </main>
     </div>

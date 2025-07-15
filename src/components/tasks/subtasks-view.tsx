@@ -11,9 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { CreateTaskModal } from './create-task-modal'
+import { CreateSubtaskModal } from './create-subtask-modal'
 import { toast } from "@/components/ui/use-toast"
-import { useTaskStore, PRIORITY_LABELS, SEVERITY_LABELS, type Task } from '@/store/tasks'
+import { useTaskStore, PRIORITY_LABELS, type Task } from '@/store/tasks'
 import { useProjectStore } from '@/store/projects'
 
 interface SubTasksViewProps {
@@ -41,7 +41,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
         description: taskData.description,
         status: taskData.status,
         priority: taskData.priority,
-        severity: taskData.severity,
+        severity: 'S3', // Default severity for subtasks
         dueDate: taskData.dueDate,
         projectId: task.projectId || taskData.projectId,
         parentId: task.id
@@ -70,7 +70,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
         description: taskData.description,
         status: taskData.status,
         priority: taskData.priority,
-        severity: taskData.severity,
+        severity: editingSubTask.severity, // Keep existing severity
         dueDate: taskData.dueDate,
         projectId: taskData.projectId
       })
@@ -110,15 +110,33 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
     const subTask = subtasks.find(t => t.id === subTaskId)
     if (!subTask) return
     
-    const newStatus = subTask.status === 'COMPLETED' ? 'TODO' : 'COMPLETED'
-    try {
-      await updateTask(subTaskId, { status: newStatus })
-      toast({
-        title: `Sub-task ${newStatus === 'COMPLETED' ? 'completed' : 'reopened'}`,
-        description: `${subTask.title} has been ${newStatus === 'COMPLETED' ? 'marked as complete' : 'reopened'}.`,
+    const newStatus = subTask.status === 'COMPLETED' ? 'ACTIVE' : 'COMPLETED'
+    
+    // Optimistic update - update UI immediately
+    const optimisticTask = { ...subTask, status: newStatus }
+    const optimisticSubtasks = subtasks.map(t => 
+      t.id === subTaskId ? optimisticTask : t
+    )
+    
+    // Update parent task's subtasks immediately for instant UI feedback
+    if (onTaskUpdate) {
+      onTaskUpdate(task.id, { 
+        subtasks: optimisticSubtasks 
       })
+    }
+    
+    try {
+      // Background API call
+      await updateTask(subTaskId, { status: newStatus })
+      // No toast for status toggles to reduce UI noise
     } catch (error) {
       console.error('Error updating sub-task status:', error)
+      
+      // Revert optimistic update on error
+      if (onTaskUpdate) {
+        onTaskUpdate(task.id, { subtasks })
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update sub-task status. Please try again.",
@@ -129,19 +147,19 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'text-red-600 bg-red-50 border-red-200'
-      case 'P2': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'P3': return 'text-green-600 bg-green-50 border-green-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'P3': return 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+      case 'P2': return 'text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
+      case 'P1': return 'text-yellow-500 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
+      default: return 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800'
     }
   }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'S1': return 'text-red-600 bg-red-50 border-red-200'
-      case 'S2': return 'text-orange-600 bg-orange-50 border-orange-200'
-      case 'S3': return 'text-blue-600 bg-blue-50 border-blue-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+      case 'S3': return 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+      case 'S2': return 'text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
+      case 'S1': return 'text-yellow-500 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
+      default: return 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800'
     }
   }
 
@@ -149,9 +167,8 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
     return {
       title: task.title,
       description: task.description || '',
-      status: task.status,
+      status: task.status === 'COMPLETED' ? 'COMPLETED' : 'ACTIVE' as 'COMPLETED' | 'ACTIVE',
       priority: task.priority,
-      severity: task.severity,
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
       projectId: task.projectId || ''
     }
@@ -174,7 +191,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
         </div>
         <p className="text-xs text-muted-foreground mt-2">No sub-tasks yet</p>
 
-        <CreateTaskModal
+        <CreateSubtaskModal
           open={showCreateSubTaskModal}
           onOpenChange={setShowCreateSubTaskModal}
           onSubmit={handleCreateSubTask}
@@ -222,7 +239,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
           {subtasks.map((subTask) => (
             <div
               key={subTask.id}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
             >
               <div className="flex items-center gap-3 flex-1">
                 <Button
@@ -248,9 +265,6 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
                 <div className="flex gap-1">
                   <Badge variant="outline" className={`${getPriorityColor(subTask.priority)} text-xs`}>
                     {PRIORITY_LABELS[subTask.priority]}
-                  </Badge>
-                  <Badge variant="outline" className={`${getSeverityColor(subTask.severity)} text-xs`}>
-                    {SEVERITY_LABELS[subTask.severity]}
                   </Badge>
                 </div>
               </div>
@@ -279,7 +293,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
         </div>
       )}
 
-      <CreateTaskModal
+      <CreateSubtaskModal
         open={showCreateSubTaskModal}
         onOpenChange={setShowCreateSubTaskModal}
         onSubmit={handleCreateSubTask}
@@ -289,7 +303,7 @@ export function SubTasksView({ task, onTaskUpdate, onTaskDelete }: SubTasksViewP
       />
 
       {editingSubTask && (
-        <CreateTaskModal
+        <CreateSubtaskModal
           open={true}
           onOpenChange={(open) => !open && setEditingSubTask(null)}
           onSubmit={handleEditSubTask}

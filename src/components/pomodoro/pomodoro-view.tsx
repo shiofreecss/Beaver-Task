@@ -559,9 +559,6 @@ export function PomodoroView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Pomodoro Timer</h1>
-          <p className="text-muted-foreground">
-            Stay focused with the Pomodoro Technique
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}

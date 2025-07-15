@@ -79,7 +79,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }),
       })
       
-      if (!response.ok) throw new Error('Failed to update project')
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error Response:', response.status, errorText)
+        throw new Error(`Failed to update project: ${response.status} ${errorText}`)
+      }
       
       const updatedProject = await response.json()
       set((state) => ({

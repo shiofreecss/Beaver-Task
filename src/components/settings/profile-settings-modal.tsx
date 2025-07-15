@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sun, Moon, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { useTheme } from 'next-themes'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import React from 'react'
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -52,6 +54,7 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
   const [imagePreview, setImagePreview] = useState(user.image || '')
   const router = useRouter()
   const { toast } = useToast()
+  const { setTheme } = useTheme()
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -66,6 +69,12 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
       }
     },
   })
+
+  // Watch theme value to sync with next-themes
+  const currentTheme = form.watch('settings.theme')
+  React.useEffect(() => {
+    setTheme(currentTheme)
+  }, [currentTheme, setTheme])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -180,18 +189,37 @@ export function ProfileSettingsModal({ user, open, onOpenChange }: ProfileSettin
           <div className="space-y-4">
             <h3 className="font-medium">Preferences</h3>
             
-            <div className="space-y-2">
-              <Label htmlFor="theme">Theme</Label>
-              <select
-                id="theme"
-                {...form.register('settings.theme')}
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                disabled={isLoading}
-              >
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
+            <div className="space-y-4">
+              <Label>Theme</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <Button
+                  type="button"
+                  variant={currentTheme === 'light' ? 'default' : 'outline'}
+                  className="w-full"
+                  onClick={() => form.setValue('settings.theme', 'light')}
+                >
+                  <Sun className="h-4 w-4 mr-2" />
+                  Light
+                </Button>
+                <Button
+                  type="button"
+                  variant={currentTheme === 'dark' ? 'default' : 'outline'}
+                  className="w-full"
+                  onClick={() => form.setValue('settings.theme', 'dark')}
+                >
+                  <Moon className="h-4 w-4 mr-2" />
+                  Dark
+                </Button>
+                <Button
+                  type="button"
+                  variant={currentTheme === 'system' ? 'default' : 'outline'}
+                  className="w-full"
+                  onClick={() => form.setValue('settings.theme', 'system')}
+                >
+                  <Monitor className="h-4 w-4 mr-2" />
+                  System
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

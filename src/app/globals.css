@@ -4,25 +4,25 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 90%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 97%;
     --card-foreground: 222.2 84% 4.9%;
  
-    --popover: 0 0% 100%;
+    --popover: 0 0% 97%;
     --popover-foreground: 222.2 84% 4.9%;
  
     --primary: 0 0% 15%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 0 0% 95%;
  
-    --secondary: 210 40% 96%;
+    --secondary: 210 40% 93%;
     --secondary-foreground: 222.2 84% 4.9%;
  
-    --muted: 210 40% 96%;
+    --muted: 210 40% 93%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 210 40% 96%;
+    --accent: 210 40% 93%;
     --accent-foreground: 222.2 84% 4.9%;
  
     --destructive: 0 84.2% 60.2%;
@@ -94,6 +94,87 @@
   
   .button-secondary {
     @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm transition-colors;
+  }
+  
+  /* Kanban Board Responsive Layout */
+  .kanban-container {
+    @apply flex gap-6 min-w-fit overflow-x-auto pb-4;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    /* Enhanced touch scrolling on mobile */
+    -webkit-overflow-scrolling: touch;
+    /* Add subtle shadow to indicate scrollability */
+    position: relative;
+  }
+  
+  /* Add gradient fade effect on edges when scrollable */
+  .kanban-container::before,
+  .kanban-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .kanban-container::before {
+    left: 0;
+    background: linear-gradient(to right, hsl(var(--background)), transparent);
+  }
+  
+  .kanban-container::after {
+    right: 0;
+    background: linear-gradient(to left, hsl(var(--background)), transparent);
+  }
+  
+  .kanban-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .kanban-container::-webkit-scrollbar-track {
+    @apply bg-muted/30 rounded-full;
+  }
+  
+  .kanban-container::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  .kanban-container::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+  
+  .kanban-column {
+    @apply rounded-lg border-2 p-4 min-h-[200px] min-w-[240px] flex-shrink-0;
+    /* Dynamic width calculation that adapts to sidebar width */
+    flex-basis: clamp(240px, calc((100vw - 360px) / 5), 320px);
+    max-width: 320px;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Responsive adjustments for smaller screens */
+  @media (max-width: 1280px) {
+    .kanban-column {
+      flex-basis: clamp(240px, calc((100vw - 320px) / 4), 300px);
+      max-width: 300px;
+    }
+  }
+  
+  @media (max-width: 1024px) {
+    .kanban-column {
+      flex-basis: clamp(240px, calc((100vw - 120px) / 3), 300px);
+      max-width: 300px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .kanban-column {
+      flex-basis: calc(100vw - 80px);
+      max-width: none;
+      min-width: 240px;
+    }
   }
 }
 

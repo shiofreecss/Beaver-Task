@@ -29,7 +29,37 @@ export async function PATCH(
     const body = await request.json()
     const validatedData = taskSchema.parse(body)
 
-    // Verify the task exists and belongs to the user
+    // Fast path for simple status updates (most common case)
+    const isSimpleStatusUpdate = Object.keys(validatedData).length === 1 && 'status' in validatedData
+    
+    if (isSimpleStatusUpdate) {
+      // Skip validation queries for simple status updates to improve performance
+      try {
+        const task = await prisma.task.update({
+          where: { 
+            id: params.id,
+            userId: session.user.id as string // Security check in the where clause
+          },
+          data: {
+            status: validatedData.status
+          },
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        })
+        return NextResponse.json(task)
+      } catch (error) {
+        // If update fails (task not found or unauthorized), fall back to full validation
+        console.warn('Fast path failed, falling back to full validation:', error)
+      }
+    }
+
+    // Full validation path for complex updates or when fast path fails
     const existingTask = await prisma.task.findFirst({
       where: {
         id: params.id,

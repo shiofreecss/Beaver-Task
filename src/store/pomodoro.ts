@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-interface PomodoroSession {
+export interface PomodoroSession {
   id: string
   duration: number // duration in minutes
   type: 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK'

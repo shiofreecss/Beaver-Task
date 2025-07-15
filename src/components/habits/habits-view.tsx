@@ -485,9 +485,6 @@ export function HabitsView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Habits</h1>
-          <p className="text-muted-foreground">
-            Build and track your daily habits
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border p-1">
