@@ -283,9 +283,6 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
               }}
               placeholder="Enter domain (e.g. example.com)"
             />
-            <p className="text-sm text-muted-foreground">
-              Enter domain only - https:// will be added automatically
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -345,9 +342,6 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
               />
               <Button type="button" onClick={handleAddDocument}>Add</Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Enter domain and path only - https:// will be added automatically
-            </p>
             <div className="flex flex-col gap-2 mt-2">
               {formData.documents.map((document, index) => {
                 const displayUrl = document.replace(/^https?:\/\//, '');
