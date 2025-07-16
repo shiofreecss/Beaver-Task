@@ -36,3 +36,7 @@ yarn-error.log*
 
 # VSCode
 .vscode/ 
+
+# Convex
+convex/_generated/
+.env.local 
