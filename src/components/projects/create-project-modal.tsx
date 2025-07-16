@@ -254,7 +254,14 @@ export function CreateProjectModal({ open, onOpenChange, onSubmit, organizations
               <Label htmlFor="color">Color Theme</Label>
               <Select value={formData.color} onValueChange={(value) => setFormData(prev => ({ ...prev, color: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a color" />
+                  <SelectValue placeholder="Select a color">
+                    {formData.color && (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: formData.color }} />
+                        {colorOptions.find(c => c.value === formData.color)?.label || 'Custom'}
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {colorOptions.map((color) => (
