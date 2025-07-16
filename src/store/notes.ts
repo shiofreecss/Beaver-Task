@@ -27,22 +27,17 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   addNote: async (note) => {
     try {
-      const response = await fetch('/api/notes', {
+      const response = await fetch('/api/notes-convex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: note.title,
-          content: note.content,
-          tags: Array.isArray(note.tags) ? note.tags : (note.tags as string).split(',').map((tag: string) => tag.trim()).filter(Boolean),
-          projectId: note.projectId
-        }),
+        body: JSON.stringify(note),
       })
       
       if (!response.ok) throw new Error('Failed to create note')
       
       const newNote = await response.json()
       set((state) => ({
-        notes: [newNote, ...state.notes]
+        notes: [...state.notes, newNote]
       }))
     } catch (error) {
       console.error('Error adding note:', error)
@@ -50,26 +45,20 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     }
   },
 
-  updateNote: async (id, updatedNote) => {
+  updateNote: async (id, note) => {
     try {
-      const response = await fetch('/api/notes', {
+      const response = await fetch('/api/notes-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          ...updatedNote,
-          tags: Array.isArray(updatedNote.tags) 
-            ? updatedNote.tags 
-            : updatedNote.tags ? (updatedNote.tags as string).split(',').map((tag: string) => tag.trim()).filter(Boolean) : []
-        }),
+        body: JSON.stringify({ id, ...note }),
       })
       
       if (!response.ok) throw new Error('Failed to update note')
       
-      const updated = await response.json()
+      const updatedNote = await response.json()
       set((state) => ({
-        notes: state.notes.map((note) =>
-          note.id === id ? updated : note
+        notes: state.notes.map((n) => 
+          n.id === id ? updatedNote : n
         )
       }))
     } catch (error) {
@@ -80,7 +69,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   deleteNote: async (id) => {
     try {
-      const response = await fetch(`/api/notes?id=${id}`, {
+      const response = await fetch(`/api/notes-convex?id=${id}`, {
         method: 'DELETE',
       })
       
@@ -101,7 +90,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   fetchNotes: async () => {
     try {
-      const response = await fetch('/api/notes')
+      const response = await fetch('/api/notes-convex')
       if (!response.ok) throw new Error('Failed to fetch notes')
       const notes = await response.json()
       set({ notes })

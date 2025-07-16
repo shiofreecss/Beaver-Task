@@ -64,7 +64,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
       startTimer: async (type, duration, taskId) => {
         set({ isLoading: true, error: null })
         try {
-          const response = await fetch('/api/pomodoro', {
+          const response = await fetch('/api/pomodoro-convex', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -107,7 +107,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         }))
 
         try {
-          await fetch('/api/pomodoro', {
+          await fetch('/api/pomodoro-convex', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -159,7 +159,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         if (!activeTimer?.sessionId) return
 
         try {
-          const response = await fetch('/api/pomodoro', {
+          const response = await fetch('/api/pomodoro-convex', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -167,6 +167,12 @@ export const usePomodoroStore = create<PomodoroStore>()(
               completed: true
             })
           })
+
+          if (response.status === 404) {
+            // Session not found, just clear the active timer
+            set({ activeTimer: null })
+            return
+          }
 
           if (!response.ok) throw new Error('Failed to complete session')
           const completedSession = await response.json()
@@ -180,13 +186,15 @@ export const usePomodoroStore = create<PomodoroStore>()(
           }))
         } catch (error) {
           console.error('Failed to complete session:', error)
+          // Clear active timer on error to prevent stuck state
+          set({ activeTimer: null })
         }
       },
 
       fetchSessions: async () => {
         set({ isLoading: true, error: null })
         try {
-          const response = await fetch('/api/pomodoro')
+          const response = await fetch('/api/pomodoro-convex')
           if (!response.ok) throw new Error('Failed to fetch pomodoro sessions')
           const sessions = await response.json()
           set({ sessions, isLoading: false })
@@ -197,7 +205,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
 
       deleteSession: async (id: string) => {
         try {
-          const response = await fetch(`/api/pomodoro?id=${id}`, {
+          const response = await fetch(`/api/pomodoro-convex?id=${id}`, {
             method: 'DELETE'
           })
           

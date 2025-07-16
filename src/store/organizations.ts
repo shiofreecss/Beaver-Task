@@ -8,26 +8,36 @@ export interface Organization {
   color: string
   createdAt: string
   updatedAt: string
+  projects?: Array<{
+    id: string
+    name: string
+    status: string
+  }>
 }
 
 interface OrganizationState {
   organizations: Organization[]
+  lastFetchTime: number | null
   setOrganizations: (organizations: Organization[]) => void
   addOrganization: (organization: Omit<Organization, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
   updateOrganization: (id: string, organization: Partial<Organization>) => Promise<void>
   deleteOrganization: (id: string) => Promise<void>
   getOrganizationById: (id: string) => Organization | undefined
-  fetchOrganizations: () => Promise<void>
+  fetchOrganizations: (force?: boolean) => Promise<void>
 }
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000
 
 export const useOrganizationStore = create<OrganizationState>((set, get) => ({
   organizations: [],
+  lastFetchTime: null,
 
-  setOrganizations: (organizations) => set({ organizations }),
+  setOrganizations: (organizations) => set({ organizations, lastFetchTime: Date.now() }),
 
   addOrganization: async (organization) => {
     try {
-      const response = await fetch('/api/organizations', {
+      const response = await fetch('/api/organizations-convex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -40,7 +50,8 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       
       const newOrg = await response.json()
       set((state) => ({
-        organizations: [...state.organizations, newOrg]
+        organizations: [...state.organizations, newOrg],
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error adding organization:', error)
@@ -50,7 +61,7 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
 
   updateOrganization: async (id, updatedOrganization) => {
     try {
-      const response = await fetch('/api/organizations', {
+      const response = await fetch('/api/organizations-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,7 +77,8 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       set((state) => ({
         organizations: state.organizations.map((org) =>
           org.id === id ? updated : org
-        )
+        ),
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error updating organization:', error)
@@ -76,14 +88,15 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
 
   deleteOrganization: async (id) => {
     try {
-      const response = await fetch(`/api/organizations?id=${id}`, {
+      const response = await fetch(`/api/organizations-convex?id=${id}`, {
         method: 'DELETE',
       })
       
       if (!response.ok) throw new Error('Failed to delete organization')
       
       set((state) => ({
-        organizations: state.organizations.filter((org) => org.id !== id)
+        organizations: state.organizations.filter((org) => org.id !== id),
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error deleting organization:', error)
@@ -95,12 +108,26 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
     return get().organizations.find((organization) => organization.id === id)
   },
 
-  fetchOrganizations: async () => {
+  fetchOrganizations: async (force = false) => {
+    const state = get()
+    
+    // Check if we need to fetch (no data, forced, or cache expired)
+    const needsFetch = force || 
+                      !state.lastFetchTime || 
+                      (Date.now() - state.lastFetchTime) > CACHE_DURATION ||
+                      state.organizations.length === 0
+
+    if (!needsFetch) {
+      console.log('Using cached organizations data')
+      return
+    }
+
     try {
-      const response = await fetch('/api/organizations')
+      console.log('Fetching organizations from API')
+      const response = await fetch('/api/organizations-convex')
       if (!response.ok) throw new Error('Failed to fetch organizations')
       const organizations = await response.json()
-      set({ organizations })
+      set({ organizations, lastFetchTime: Date.now() })
     } catch (error) {
       console.error('Error fetching organizations:', error)
       throw error

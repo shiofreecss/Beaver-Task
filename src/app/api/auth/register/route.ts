@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
-import { prisma } from '@/lib/prisma'
+import convex from '@/lib/convex'
+import { api } from '../../../../../convex/_generated/api'
 import * as z from 'zod'
 
 const userSchema = z.object({
@@ -14,37 +15,18 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { email, password, name } = userSchema.parse(body)
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
-      )
-    }
-
     // Hash password
     const hashedPassword = await hash(password, 10)
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-      },
+    // Create user in Convex
+    const userId = await convex.mutation(api.users.createUser, {
+      email,
+      password: hashedPassword,
+      name,
     })
 
     return NextResponse.json(
-      { message: 'User created successfully', user },
+      { message: 'User created successfully', userId },
       { status: 201 }
     )
   } catch (error) {
@@ -52,6 +34,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: 'Invalid request data', issues: error.issues },
         { status: 422 }
+      )
+    }
+
+    // Handle Convex ConvexError for duplicate email
+    if (error instanceof Error && error.message.includes('already exists')) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 409 }
       )
     }
 

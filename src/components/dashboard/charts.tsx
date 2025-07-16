@@ -80,7 +80,7 @@ export function DashboardCharts({ tasks, projects, sessions }: DashboardChartsPr
       label: 'Focus Minutes',
       data: last7Days.map(date => {
         const dayMinutes = sessions
-          .filter(s => s.createdAt.split('T')[0] === date)
+          .filter(s => new Date(s.createdAt).toISOString().split('T')[0] === date)
           .reduce((acc, session) => acc + (session.duration || 0), 0)
         return dayMinutes
       }),

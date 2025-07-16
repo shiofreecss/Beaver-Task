@@ -100,7 +100,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         columnId: task.columnId || get().columns.find(col => col.projectId === task.projectId && col.order === 0)?.id
       }
 
-      const response = await fetch('/api/tasks', {
+      const response = await fetch('/api/tasks-convex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
@@ -136,7 +136,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           columnId: task.columnId || get().columns.find(col => col.projectId === task.projectId && col.order === 0)?.id
         }
 
-        return fetch('/api/tasks', {
+        return fetch('/api/tasks-convex', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(taskData),
@@ -161,10 +161,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   updateTask: async (id, task) => {
     try {
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/tasks-convex', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           ...task,
           projectId: task.projectId || null
         }),
@@ -236,11 +237,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-
-
   deleteTask: async (id) => {
     try {
-      const response = await fetch(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks-convex?id=${id}`, {
         method: 'DELETE'
       })
       
@@ -260,7 +259,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   fetchTasks: async () => {
     try {
-      const response = await fetch('/api/tasks')
+      const response = await fetch('/api/tasks-convex')
       
       if (!response.ok) {
         const error = await response.json()
@@ -368,23 +367,25 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  moveTask: async (taskId: string, columnId: string) => {
+  moveTask: async (taskId, columnId) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}/move`, {
+      const response = await fetch('/api/tasks-convex/move', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ columnId }),
+        body: JSON.stringify({ taskId, columnId })
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to move task')
+        const errorText = await response.text()
+        console.error('Move task error:', response.status, errorText)
+        throw new Error(`Failed to move task: ${response.status}`)
       }
-      
+
       const updatedTask = await response.json()
+      
       set((state) => ({
-        tasks: state.tasks.map((t) => 
-          t.id === taskId ? updatedTask : t
+        tasks: state.tasks.map((task) =>
+          task.id === taskId ? { ...task, ...updatedTask } : task
         )
       }))
     } catch (error) {

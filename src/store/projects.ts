@@ -6,7 +6,7 @@ export interface Project {
   name: string
   description?: string
   status: 'ACTIVE' | 'PLANNING' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED'
-  organizationId: string
+  organizationId?: string | null
   color: string
   dueDate?: string
   createdAt: string
@@ -31,22 +31,27 @@ export const PROJECT_STATUS_LABELS = {
 
 interface ProjectState {
   projects: Project[]
+  lastFetchTime: number | null
   setProjects: (projects: Project[]) => void
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
   updateProject: (id: string, project: Partial<Project>) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   getProjectById: (id: string) => Project | undefined
-  fetchProjects: () => Promise<void>
+  fetchProjects: (force?: boolean) => Promise<void>
 }
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
+  lastFetchTime: null,
 
-  setProjects: (projects) => set({ projects }),
+  setProjects: (projects) => set({ projects, lastFetchTime: Date.now() }),
 
   addProject: async (project) => {
     try {
-      const response = await fetch('/api/projects', {
+      const response = await fetch('/api/projects-convex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,7 +64,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       
       const newProject = await response.json()
       set((state) => ({
-        projects: [...state.projects, newProject]
+        projects: [...state.projects, newProject],
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error adding project:', error)
@@ -69,7 +75,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateProject: async (id, project) => {
     try {
-      const response = await fetch('/api/projects', {
+      const response = await fetch('/api/projects-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,7 +95,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set((state) => ({
         projects: state.projects.map((p) => 
           p.id === id ? updatedProject : p
-        )
+        ),
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error updating project:', error)
@@ -99,14 +106,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   deleteProject: async (id) => {
     try {
-      const response = await fetch(`/api/projects?id=${id}`, {
-        method: 'DELETE'
+      // Get the current user's Convex ID first
+      const userResponse = await fetch('/api/auth/session')
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user session')
+      }
+      const session = await userResponse.json()
+      if (!session?.user?.id) {
+        throw new Error('No user session found')
+      }
+
+      const response = await fetch('/api/projects-convex', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: id })
       })
       
-      if (!response.ok) throw new Error('Failed to delete project')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Failed to delete project')
+      }
       
       set((state) => ({
-        projects: state.projects.filter((p) => p.id !== id)
+        projects: state.projects.filter((p) => p.id !== id),
+        lastFetchTime: Date.now()
       }))
     } catch (error) {
       console.error('Error deleting project:', error)
@@ -118,14 +141,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     return get().projects.find((p) => p.id === id)
   },
 
-  fetchProjects: async () => {
+  fetchProjects: async (force = false) => {
+    const state = get()
+    
+    // Check if we need to fetch (no data, forced, or cache expired)
+    const needsFetch = force || 
+                      !state.lastFetchTime || 
+                      (Date.now() - state.lastFetchTime) > CACHE_DURATION ||
+                      state.projects.length === 0
+
+    if (!needsFetch) {
+      console.log('Using cached projects data')
+      return
+    }
+
     try {
-      const response = await fetch('/api/projects')
+      console.log('Fetching projects from API')
+      const response = await fetch('/api/projects-convex')
       
       if (!response.ok) throw new Error('Failed to fetch projects')
       
       const projects = await response.json()
-      set({ projects })
+      set({ projects, lastFetchTime: Date.now() })
     } catch (error) {
       console.error('Error fetching projects:', error)
       throw error

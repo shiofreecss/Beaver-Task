@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '@/lib/auth'
+import { authOptions } from '@/lib/auth-convex'
 import * as z from 'zod'
 
 const profileSchema = z.object({

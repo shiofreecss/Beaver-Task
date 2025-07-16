@@ -59,7 +59,7 @@ export function HabitsView() {
 
   const fetchHabits = async () => {
     try {
-      const response = await fetch('/api/habits')
+      const response = await fetch('/api/habits-convex')
       if (!response.ok) throw new Error('Failed to fetch habits')
       const data = await response.json()
       setHabits(data)
@@ -77,7 +77,7 @@ export function HabitsView() {
 
   const handleCreateHabit = async (habitData: HabitFormData) => {
     try {
-      const response = await fetch('/api/habits', {
+      const response = await fetch('/api/habits-convex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(habitData)
@@ -102,14 +102,17 @@ export function HabitsView() {
     }
   }
 
-  const handleEditHabit = async (habitData: HabitFormData) => {
+  const handleUpdateHabit = async (habitData: HabitFormData) => {
     if (!editingHabit) return
 
     try {
-      const response = await fetch('/api/habits', {
+      const response = await fetch('/api/habits-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingHabit.id, ...habitData })
+        body: JSON.stringify({
+          id: editingHabit.id,
+          ...habitData
+        })
       })
 
       if (!response.ok) throw new Error('Failed to update habit')
@@ -118,7 +121,6 @@ export function HabitsView() {
       setHabits(habits.map(habit => 
         habit.id === editingHabit.id ? updatedHabit : habit
       ))
-      setEditingHabit(null)
       toast({
         title: "Success",
         description: `${habitData.name} has been updated successfully.`,
@@ -136,7 +138,7 @@ export function HabitsView() {
 
   const handleDeleteHabit = async (habitId: string) => {
     try {
-      const response = await fetch(`/api/habits?id=${habitId}`, {
+      const response = await fetch(`/api/habits-convex?id=${habitId}`, {
         method: 'DELETE'
       })
 
@@ -145,7 +147,7 @@ export function HabitsView() {
       setHabits(habits.filter(habit => habit.id !== habitId))
       toast({
         title: "Success",
-        description: "The habit has been deleted successfully.",
+        description: "Habit has been deleted successfully.",
       })
     } catch (error) {
       console.error('Error deleting habit:', error)
@@ -157,33 +159,25 @@ export function HabitsView() {
     }
   }
 
-  const toggleHabit = async (habitId: string) => {
-    const habit = habits.find(h => h.id === habitId)
-    if (!habit) return
-
+  const handleToggleCompletion = async (habitId: string, completed: boolean) => {
     try {
-      const response = await fetch('/api/habits', {
+      const response = await fetch('/api/habits-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: habitId,
-          completed: !habit.completedToday
+          completed
         })
       })
 
       if (!response.ok) throw new Error('Failed to update habit')
       
       const updatedHabit = await response.json()
-      setHabits(habits.map(h => 
-        h.id === habitId ? updatedHabit : h
+      setHabits(habits.map(habit => 
+        habit.id === habitId ? updatedHabit : habit
       ))
-      
-      toast({
-        title: `Habit ${!habit.completedToday ? 'completed' : 'unchecked'}`,
-        description: `${habit.name} has been ${!habit.completedToday ? 'marked as complete' : 'unchecked'} for today.`,
-      })
     } catch (error) {
-      console.error('Error toggling habit:', error)
+      console.error('Error toggling habit completion:', error)
       toast({
         title: "Error",
         description: "Failed to update habit. Please try again.",
@@ -210,7 +204,7 @@ export function HabitsView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleHabit(habit.id)}
+                  onClick={() => handleToggleCompletion(habit.id, !habit.completedToday)}
                   className="p-0 h-6 w-6"
                 >
                   {habit.completedToday ? (
@@ -299,7 +293,7 @@ export function HabitsView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleHabit(habit.id)}
+                  onClick={() => handleToggleCompletion(habit.id, !habit.completedToday)}
                   className="p-0 h-6 w-6 flex-shrink-0"
                 >
                   {habit.completedToday ? (
@@ -426,7 +420,7 @@ export function HabitsView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => toggleHabit(habit.id)}
+                      onClick={() => handleToggleCompletion(habit.id, !habit.completedToday)}
                       className="p-0 h-6 w-6"
                     >
                       {habit.completedToday ? (
@@ -536,7 +530,7 @@ export function HabitsView() {
           setShowCreateModal(open)
           if (!open) setEditingHabit(null)
         }}
-        onSubmit={editingHabit ? handleEditHabit : handleCreateHabit}
+        onSubmit={editingHabit ? handleUpdateHabit : handleCreateHabit}
         habit={editingHabit || undefined}
       />
     </div>

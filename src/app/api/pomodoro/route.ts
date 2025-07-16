@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { authOptions } from '@/lib/auth-convex'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
@@ -69,6 +69,18 @@ export async function PUT(req: Request) {
 
     if (!id) {
       return new NextResponse('Session ID is required', { status: 400 })
+    }
+
+    // First check if the session exists and belongs to the user
+    const existingSession = await prisma.pomodoroSession.findUnique({
+      where: {
+        id,
+        userId: session.user.id as string
+      }
+    })
+
+    if (!existingSession) {
+      return new NextResponse('Session not found', { status: 404 })
     }
 
     const pomodoroSession = await prisma.pomodoroSession.update({

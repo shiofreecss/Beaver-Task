@@ -29,7 +29,7 @@ export const useHabitStore = create<HabitStore>((set) => ({
   fetchHabits: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch('/api/habits')
+      const response = await fetch('/api/habits-convex')
       if (!response.ok) throw new Error('Failed to fetch habits')
       const habits = await response.json()
       set({ habits, isLoading: false })

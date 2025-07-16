@@ -55,7 +55,16 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        await Promise.all([fetchProjects(), fetchOrganizations()])
+        // If we're in an organization view, we only need projects
+        // Organizations should already be loaded from the parent component
+        if (organizationId) {
+          console.log('Loading projects for organization:', organizationId)
+          await fetchProjects()
+        } else {
+          // Only in general projects view do we need both
+          console.log('Loading all projects and organizations')
+          await Promise.all([fetchProjects(), fetchOrganizations()])
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error)
         toast({
@@ -68,7 +77,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
       }
     }
     loadData()
-  }, [fetchProjects, fetchOrganizations])
+  }, [fetchProjects, fetchOrganizations, organizationId])
 
   // Filter projects by organization if organizationId is provided
   // Also apply organization filter if selectedOrganizationFilter is set
@@ -79,7 +88,7 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
     // If we're in the general projects view and an organization filter is selected
     if (!organizationId && selectedOrganizationFilter !== 'all') {
       if (selectedOrganizationFilter === 'no-organization') {
-        return !project.organizationId
+        return !project.organizationId || project.organizationId === null
       } else {
         return project.organizationId === selectedOrganizationFilter
       }
@@ -87,6 +96,24 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
     
     return true
   })
+
+  // Debug logging for organization navigation
+  useEffect(() => {
+    if (organizationId) {
+      console.log('🐛 DEBUG - ProjectsView for Organization:', {
+        organizationId,
+        organization: organizations.find(org => org.id === organizationId),
+        totalProjects: projects.length,
+        filteredProjects: filteredProjects.length,
+        organizationProjects: projects.filter(p => p.organizationId === organizationId),
+        allProjectsOrganizationIds: projects.map(p => ({ id: p.id, name: p.name, orgId: p.organizationId })),
+        filterLogic: {
+          'exact match': projects.filter(p => p.organizationId === organizationId).length,
+          'null/undefined projects': projects.filter(p => !p.organizationId || p.organizationId === null).length
+        }
+      })
+    }
+  }, [organizationId, projects, filteredProjects, organizations])
 
   const handleCreateProject = async (projectData: any) => {
     try {
@@ -140,15 +167,36 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
+      console.log('Attempting to delete project:', projectId)
       await deleteProject(projectId)
       toast({
         title: "Project deleted",
         description: "The project has been deleted successfully.",
       })
     } catch (error) {
+      console.error('Project deletion error:', error)
       toast({
         title: "Error",
-        description: "Failed to delete project. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete project. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleMoveProject = async (projectId: string, newOrgId: string) => {
+    try {
+      await updateProject(projectId, { organizationId: newOrgId })
+      // Refresh projects data to update counts
+      await fetchProjects()
+      toast({
+        title: "Project moved",
+        description: "Project has been moved to the new organization."
+      })
+    } catch (error) {
+      console.error('Failed to move project:', error)
+      toast({
+        title: "Error",
+        description: "Failed to move project. Please try again.",
         variant: "destructive"
       })
     }
@@ -648,6 +696,11 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             {organizationId ? 'Organization Projects' : 'Projects'}
           </h1>
+          {organizationId && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Showing projects for selected organization
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {/* Organization Filter - only show in general projects view */}
@@ -700,9 +753,14 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
         <Card className="text-center py-8 md:py-12">
           <CardContent>
             <div className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-4">📁</div>
-            <h3 className="text-base md:text-lg font-semibold mb-2">No projects yet</h3>
+            <h3 className="text-base md:text-lg font-semibold mb-2">
+              {organizationId ? 'No projects in this organization yet' : 'No projects yet'}
+            </h3>
             <p className="text-muted-foreground mb-4 text-sm md:text-base">
-              Create your first project to get started
+              {organizationId 
+                ? 'Create your first project for this organization to get started'
+                : 'Create your first project to get started'
+              }
             </p>
             <Button onClick={() => setShowCreateModal(true)} className="text-sm md:text-base">
               <Plus className="mr-2 h-4 w-4" />
@@ -711,7 +769,19 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
           </CardContent>
         </Card>
       ) : (
-        renderCurrentView()
+        <div>
+          {organizationId && (
+            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredProjects.length} project{filteredProjects.length === 1 ? '' : 's'} 
+                {organizations.find(org => org.id === organizationId)?.name && 
+                  ` for "${organizations.find(org => org.id === organizationId)?.name}"`
+                }
+              </p>
+            </div>
+          )}
+          {renderCurrentView()}
+        </div>
       )}
 
       <CreateProjectModal

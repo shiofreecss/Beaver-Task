@@ -34,11 +34,21 @@ export function OrganizationsView() {
   const updateOrganization = useOrganizationStore((state) => state.updateOrganization)
   const deleteOrganization = useOrganizationStore((state) => state.deleteOrganization)
   const projects = useProjectStore((state) => state.projects)
+  const fetchProjects = useProjectStore((state) => state.fetchProjects)
+
+  // Add effect to refresh projects when selected org changes
+  useEffect(() => {
+    if (selectedOrgId) {
+      console.log('🔄 Refreshing projects for organization:', selectedOrgId)
+      fetchProjects()
+    }
+  }, [selectedOrgId, fetchProjects])
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        await fetchOrganizations()
+        // Load both organizations and projects so navigation works smoothly
+        await Promise.all([fetchOrganizations(), fetchProjects()])
       } catch (error) {
         console.error('Failed to fetch organizations:', error)
         toast({
@@ -51,7 +61,31 @@ export function OrganizationsView() {
       }
     }
     loadData()
-  }, [fetchOrganizations])
+  }, [fetchOrganizations, fetchProjects])
+
+  // Debug logging when data is actually loaded
+  useEffect(() => {
+    if (organizations.length > 0 || projects.length > 0) {
+      console.log('🐛 DEBUG - Organizations and Projects data:', {
+        organizationsCount: organizations.length,
+        projectsCount: projects.length,
+        organizations: organizations.map(org => ({
+          id: org.id,
+          name: org.name,
+          projectCount: projects.filter(p => p.organizationId === org.id).length
+        })),
+        projects: projects.map(p => ({
+          id: p.id,
+          name: p.name,
+          organizationId: p.organizationId
+        })),
+        projectsByOrganization: organizations.reduce((acc, org) => {
+          acc[org.name] = projects.filter(p => p.organizationId === org.id)
+          return acc
+        }, {} as Record<string, any[]>)
+      })
+    }
+  }, [organizations, projects])
 
   const handleCreateOrganization = async (orgData: any) => {
     try {
@@ -81,7 +115,7 @@ export function OrganizationsView() {
       await updateOrganization(editingOrg.id, {
         name: orgData.name,
         description: orgData.description,
-        color: orgData.color
+        color: getTailwindClass(orgData.color)
       })
       setEditingOrg(null)
       toast({
@@ -125,9 +159,25 @@ export function OrganizationsView() {
     }
   }
 
-  // Get project count for an organization
+  // Update getProjectCount to always use latest projects data
   const getProjectCount = (orgId: string) => {
+    console.log('📊 Calculating project count for org:', orgId, {
+      totalProjects: projects.length,
+      matchingProjects: projects.filter(project => project.organizationId === orgId).length
+    })
     return projects.filter(project => project.organizationId === orgId).length
+  }
+
+  // Debug logging for navigation
+  const handleProjectNavigation = (orgId: string) => {
+    console.log('Organization project navigation clicked:', {
+      orgId,
+      organization: organizations.find(org => org.id === orgId),
+      projectsForOrg: projects.filter(project => project.organizationId === orgId),
+      totalProjects: projects.length,
+      projectsBreakdown: projects.map(p => ({ id: p.id, name: p.name, orgId: p.organizationId }))
+    })
+    setSelectedOrgId(orgId)
   }
 
   const viewModeButtons = [
@@ -156,7 +206,10 @@ export function OrganizationsView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setEditingOrg(org)}>
+                  <DropdownMenuItem onClick={() => setEditingOrg({
+                    ...org,
+                    color: getTailwindColor(org.color)
+                  })}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
@@ -183,7 +236,8 @@ export function OrganizationsView() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedOrgId(org.id)}
+                onClick={() => handleProjectNavigation(org.id)}
+                title={`View projects for ${org.name}`}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -220,7 +274,12 @@ export function OrganizationsView() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedOrgId(org.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('🔥 Navigation button clicked for org:', org.name, org.id)
+                    handleProjectNavigation(org.id)
+                  }}
+                  title={`View projects for ${org.name}`}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -231,7 +290,10 @@ export function OrganizationsView() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setEditingOrg(org)}>
+                    <DropdownMenuItem onClick={() => setEditingOrg({
+                      ...org,
+                      color: getTailwindColor(org.color)
+                    })}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -291,7 +353,12 @@ export function OrganizationsView() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelectedOrgId(org.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          console.log('🔥 Navigation button clicked for org (table view):', org.name, org.id)
+                          handleProjectNavigation(org.id)
+                        }}
+                        title={`View projects for ${org.name}`}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -302,7 +369,10 @@ export function OrganizationsView() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => setEditingOrg(org)}>
+                          <DropdownMenuItem onClick={() => setEditingOrg({
+                            ...org,
+                            color: getTailwindColor(org.color)
+                          })}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
@@ -341,7 +411,17 @@ export function OrganizationsView() {
 
   if (selectedOrgId) {
     const selectedOrg = organizations.find(org => org.id === selectedOrgId)
-    if (!selectedOrg) return null
+    if (!selectedOrg) {
+      console.warn('🚨 Selected organization not found:', selectedOrgId)
+      setSelectedOrgId(null) // Reset if organization not found
+      return null
+    }
+
+    console.log('🎯 Navigating to organization projects:', {
+      selectedOrgId,
+      selectedOrg: selectedOrg.name,
+      embeddedProjects: selectedOrg.projects?.length || 0
+    })
 
     return (
       <div className="p-6">
