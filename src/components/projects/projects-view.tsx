@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table, Columns, Filter } from 'lucide-react'
+import { Plus, Calendar, Users, MoreVertical, Pencil, Trash2, ChevronRight, Grid3X3, List, Table, Columns, Filter, Globe, FileText } from 'lucide-react'
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import {
   DropdownMenu,
@@ -123,7 +123,10 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
         status: projectData.status,
         dueDate: projectData.dueDate,
         color: projectData.color,
-        organizationId: organizationId || projectData.organizationId
+        organizationId: organizationId || projectData.organizationId,
+        website: projectData.website,
+        categories: projectData.categories,
+        documents: projectData.documents
       })
       setShowCreateModal(false)
       toast({
@@ -149,7 +152,10 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
         status: projectData.status,
         dueDate: projectData.dueDate,
         color: projectData.color,
-        organizationId: organizationId || projectData.organizationId
+        organizationId: organizationId || projectData.organizationId,
+        website: projectData.website,
+        categories: projectData.categories,
+        documents: projectData.documents
       })
       setEditingProject(null)
       toast({
@@ -323,6 +329,34 @@ export function ProjectsView({ organizationId }: ProjectsViewProps) {
                 <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
                   <span className="truncate">Due {new Date(project.dueDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {project.website && (
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                  <Globe className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                  <a 
+                    href={`https://${project.website}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="truncate hover:text-primary"
+                  >
+                    {project.website}
+                  </a>
+                </div>
+              )}
+              {project.documents && project.documents.length > 0 && (
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                  <FileText className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                  <span>{project.documents.length} document{project.documents.length === 1 ? '' : 's'}</span>
+                </div>
+              )}
+              {project.categories && project.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {project.categories.map((category: string) => (
+                    <Badge key={category} variant="secondary" className="text-xs">
+                      {category}
+                    </Badge>
+                  ))}
                 </div>
               )}
               <Button

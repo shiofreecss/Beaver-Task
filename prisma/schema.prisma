@@ -88,6 +88,9 @@ model Project {
   status         String    @default("ACTIVE")
   color          String?
   dueDate        DateTime?
+  website        String?
+  categories     String?   @default("[]") // JSON array of strings
+  documents      String?   @default("[]") // JSON array of strings
   userId         String
   organizationId String?
   createdAt      DateTime  @default(now())

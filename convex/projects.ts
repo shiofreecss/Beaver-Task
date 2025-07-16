@@ -54,6 +54,9 @@ export const createProject = mutation({
     color: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     organizationId: v.optional(v.id("organizations")),
+    website: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
+    documents: v.optional(v.array(v.string())),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -65,6 +68,9 @@ export const createProject = mutation({
       color: args.color,
       dueDate: args.dueDate,
       organizationId: args.organizationId,
+      website: args.website,
+      categories: args.categories,
+      documents: args.documents,
       userId: args.userId,
       createdAt: now,
       updatedAt: now,
@@ -101,6 +107,9 @@ export const updateProject = mutation({
     color: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     organizationId: v.optional(v.id("organizations")),
+    website: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
+    documents: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const { projectId, userId, ...updates } = args;

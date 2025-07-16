@@ -12,6 +12,31 @@ const projectSchema = z.object({
   color: z.string().optional(),
   dueDate: z.string().optional().nullable(),
   organizationId: z.string().optional().nullable(),
+  categories: z.array(z.string()).optional().transform((val) => {
+    if (!val) return undefined;
+    return val; // Return the array as-is, including empty arrays
+  }),
+  website: z.string().optional().transform((val) => {
+    if (!val) return undefined;
+    // If it already starts with http:// or https://, return as is
+    if (val.startsWith('http://') || val.startsWith('https://')) return val;
+    // Otherwise, add https:// prefix
+    return `https://${val}`;
+  }),
+  documents: z.array(z.string()).optional().transform((val) => {
+    if (!val) return undefined;
+    if (val.length === 0) return []; // Return empty array instead of undefined
+    // Transform each document URL
+    const transformedDocs = val
+      .filter(doc => doc && doc.trim()) // Remove empty strings
+      .map(doc => {
+        // If it already starts with http:// or https://, return as is
+        if (doc.startsWith('http://') || doc.startsWith('https://')) return doc;
+        // Otherwise, add https:// prefix
+        return `https://${doc}`;
+      });
+    return transformedDocs.length > 0 ? transformedDocs : [];
+  }),
 })
 
 // Simple in-memory cache for user IDs (reset on server restart)
@@ -83,7 +108,10 @@ export async function POST(request: NextRequest) {
       ...validatedData,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
       organizationId: validatedData.organizationId as any,
-      userId: convexUserId
+      userId: convexUserId,
+      website: validatedData.website,
+      categories: validatedData.categories,
+      documents: validatedData.documents
     })
 
     return NextResponse.json(project)
@@ -124,7 +152,10 @@ export async function PUT(request: NextRequest) {
       ...validatedData,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
       organizationId: validatedData.organizationId as any,
-      userId: convexUserId
+      userId: convexUserId,
+      website: validatedData.website,
+      categories: validatedData.categories,
+      documents: validatedData.documents
     })
 
     return NextResponse.json(project)

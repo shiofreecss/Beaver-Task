@@ -9,6 +9,9 @@ export interface Project {
   organizationId?: string | null
   color: string
   dueDate?: string
+  website?: string
+  categories?: string[]
+  documents?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -56,7 +59,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...project,
-          color: getTailwindClass(project.color)
+          color: getTailwindClass(project.color),
+          website: project.website,
+          categories: project.categories,
+          documents: project.documents
         }),
       })
       
@@ -81,7 +87,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         body: JSON.stringify({
           id,
           ...project,
-          color: project.color ? getTailwindClass(project.color) : undefined
+          color: project.color ? getTailwindClass(project.color) : undefined,
+          website: project.website,
+          categories: project.categories,
+          documents: project.documents
         }),
       })
       
