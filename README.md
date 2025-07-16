@@ -1,6 +1,6 @@
 # 🦫 Beaver Task Manager
 
-A comprehensive project management application with organizations, projects, tasks, notes, habit tracking, and Pomodoro timer functionality. Built with Next.js 14, TypeScript, Tailwind CSS, and Prisma.
+A comprehensive project management application with organizations, projects, tasks, notes, habit tracking, and Pomodoro timer functionality. Built with Next.js 14, TypeScript, Tailwind CSS, and Convex.
 
 ## 🚀 Features
 
@@ -60,7 +60,7 @@ A comprehensive project management application with organizations, projects, tas
 
 - **Frontend**: Next.js 14 with App Router, TypeScript
 - **Styling**: Tailwind CSS + Radix UI components
-- **Database**: SQLite with Prisma ORM
+- **Database**: Convex for real-time data sync
 - **State Management**: Zustand + React hooks
 - **Form Handling**: React Hook Form with validation
 - **Icons**: Lucide React
@@ -72,6 +72,7 @@ A comprehensive project management application with organizations, projects, tas
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn
+- Convex account for database
 
 ### Installation
 
@@ -86,10 +87,9 @@ A comprehensive project management application with organizations, projects, tas
    npm install
    ```
 
-3. **Set up the database**
+3. **Set up Convex**
    ```bash
-   npx prisma generate
-   npx prisma db push
+   npx convex dev
    ```
 
 4. **Start the development server**
@@ -197,15 +197,14 @@ A comprehensive project management application with organizations, projects, tas
 - ✅ Local data persistence
 
 ### 🔄 Future Enhancements
-- [ ] User authentication and multi-user support
-- [ ] Cloud database integration
-- [ ] Export/import functionality
 - [ ] Advanced analytics and reporting
 - [ ] Team collaboration features
 - [ ] Mobile app version
 - [ ] Calendar integration
 - [ ] Email notifications
 - [ ] API endpoints for external integration
+- [ ] Bluetooth-based local sync
+- [ ] Offline support
 
 ## 🤝 Contributing
 

@@ -145,24 +145,26 @@
 ### ✅ Current Technical Stack
 - **Frontend**: Next.js 14 with TypeScript and App Router
 - **Styling**: Tailwind CSS with Radix UI components
-- **Database**: SQLite with Prisma ORM
+- **Database**: Convex for real-time data sync
 - **State Management**: Zustand and React hooks
 - **Form Handling**: React Hook Form with validation
-- **Icons**: Lucide React icon library
+- **Icons**: Lucide React
 - **UI Components**: Custom components built with Radix UI primitives
 
 ### Data Management
-- **Local Storage**: SQLite database for data persistence
+- **Real-time Database**: Convex for real-time data sync and persistence
 - **Real-time Updates**: Immediate UI updates for all actions
 - **Data Relationships**: Proper linking between organizations, projects, and tasks
 - **Form Validation**: Comprehensive validation for all user inputs
+- **Offline Support**: Coming soon with Service Workers
+- **Local Sync**: Future Bluetooth-based local sync planned
 
 ## 🚀 Ready-to-Use Features
 
 **All features listed above are fully implemented and ready for immediate use. The application is production-ready with:**
 
 - ✅ Complete CRUD operations for all entities
-- ✅ Real-time UI updates and feedback
+- ✅ Real-time data sync across devices
 - ✅ Responsive design for all devices
 - ✅ Data persistence and relationships
 - ✅ Form validation and error handling
@@ -170,4 +172,4 @@
 - ✅ Comprehensive task and time management
 - ✅ Integrated productivity workflow
 
-**Start using the application immediately at [http://localhost:3001](http://localhost:3001) after running `npm run dev`.** 
+**Start using the application immediately at [http://localhost:3001](http://localhost:3001) after running `npm run dev` and `npx convex dev`.** 
