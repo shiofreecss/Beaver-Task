@@ -34,7 +34,15 @@ export const getUserOrganizations = query({
       })
     );
 
-    return organizationsWithProjects.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    // Sort by order first, then by creation date
+    return organizationsWithProjects.sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
   },
 });
 
@@ -44,14 +52,37 @@ export const createOrganization = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     userId: v.id("users"),
+    department: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
+    website: v.optional(v.string()),
+    documents: v.optional(v.array(v.string())),
+    order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    
+    // If order is not provided, get the highest order and add 1
+    let order = args.order;
+    if (order === undefined) {
+      const organizations = await ctx.db
+        .query("organizations")
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .collect();
+      
+      const maxOrder = Math.max(...organizations.map(org => org.order ?? -1));
+      order = maxOrder + 1;
+    }
+
     const id = await ctx.db.insert("organizations", {
       name: args.name,
       description: args.description,
       color: args.color,
       userId: args.userId,
+      department: args.department,
+      categories: args.categories,
+      website: args.website,
+      documents: args.documents,
+      order,
       createdAt: now,
       updatedAt: now,
     });
@@ -74,6 +105,11 @@ export const updateOrganization = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     userId: v.id("users"),
+    department: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
+    website: v.optional(v.string()),
+    documents: v.optional(v.array(v.string())),
+    order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const organization = await ctx.db.get(args.id);
@@ -90,6 +126,11 @@ export const updateOrganization = mutation({
       name: args.name,
       description: args.description,
       color: args.color,
+      department: args.department,
+      categories: args.categories,
+      website: args.website,
+      documents: args.documents,
+      order: args.order,
       updatedAt: now,
     });
 
@@ -119,6 +160,25 @@ export const deleteOrganization = mutation({
       throw new ConvexError("Unauthorized");
     }
 
-    return await ctx.db.delete(args.id);
+    // Get all organizations to reorder after deletion
+    const organizations = await ctx.db
+      .query("organizations")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Delete the organization
+    await ctx.db.delete(args.id);
+
+    // Update order for remaining organizations
+    const deletedOrder = organization.order;
+    if (deletedOrder !== undefined) {
+      for (const org of organizations) {
+        if (org._id !== args.id && org.order !== undefined && org.order > deletedOrder) {
+          await ctx.db.patch(org._id, { order: org.order - 1 });
+        }
+      }
+    }
+
+    return { success: true };
   },
 }); 

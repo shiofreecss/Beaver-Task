@@ -6,6 +6,11 @@ export interface Organization {
   name: string
   description?: string
   color: string
+  department?: string
+  categories?: string[]
+  website?: string
+  documents?: string[]
+  order?: number
   createdAt: string
   updatedAt: string
   projects?: Array<{
@@ -21,6 +26,7 @@ interface OrganizationState {
   setOrganizations: (organizations: Organization[]) => void
   addOrganization: (organization: Omit<Organization, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
   updateOrganization: (id: string, organization: Partial<Organization>) => Promise<void>
+  updateOrganizationOrder: (id: string, newOrder: number) => Promise<void>
   deleteOrganization: (id: string) => Promise<void>
   getOrganizationById: (id: string) => Organization | undefined
   fetchOrganizations: (force?: boolean) => Promise<void>
@@ -42,7 +48,12 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...organization,
-          color: getTailwindClass(organization.color)
+          color: getTailwindClass(organization.color),
+          department: organization.department,
+          categories: organization.categories,
+          website: organization.website,
+          documents: organization.documents,
+          order: get().organizations.length // Set order to the end of the list
         }),
       })
       
@@ -61,13 +72,23 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
 
   updateOrganization: async (id, updatedOrganization) => {
     try {
+      // Get the current organization data
+      const currentOrg = get().organizations.find(org => org.id === id)
+      if (!currentOrg) throw new Error('Organization not found')
+
       const response = await fetch('/api/organizations-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
-          ...updatedOrganization,
-          color: updatedOrganization.color ? getTailwindClass(updatedOrganization.color) : undefined
+          name: updatedOrganization.name || currentOrg.name,
+          description: updatedOrganization.description !== undefined ? updatedOrganization.description : currentOrg.description,
+          color: updatedOrganization.color ? getTailwindClass(updatedOrganization.color) : currentOrg.color,
+          department: updatedOrganization.department !== undefined ? updatedOrganization.department : currentOrg.department,
+          categories: updatedOrganization.categories !== undefined ? updatedOrganization.categories : currentOrg.categories,
+          website: updatedOrganization.website !== undefined ? updatedOrganization.website : currentOrg.website,
+          documents: updatedOrganization.documents !== undefined ? updatedOrganization.documents : currentOrg.documents,
+          order: updatedOrganization.order !== undefined ? updatedOrganization.order : currentOrg.order
         }),
       })
       
@@ -82,6 +103,46 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       }))
     } catch (error) {
       console.error('Error updating organization:', error)
+      throw error
+    }
+  },
+
+  updateOrganizationOrder: async (id: string, newOrder: number) => {
+    try {
+      const state = get()
+      const organizations = [...state.organizations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      const targetOrg = organizations.find(org => org.id === id)
+      if (!targetOrg) throw new Error('Organization not found')
+
+      const currentIndex = organizations.findIndex(org => org.id === id)
+      
+      // No need to update if position hasn't changed
+      if (currentIndex === newOrder) return
+
+      // Optimistic update: reorder organizations immediately
+      const reorderedOrganizations = [...organizations]
+      const [movedOrg] = reorderedOrganizations.splice(currentIndex, 1)
+      reorderedOrganizations.splice(newOrder, 0, movedOrg)
+      
+      // Assign sequential order values
+      const finalOrganizations = reorderedOrganizations.map((org, index) => ({
+        ...org,
+        order: index
+      }))
+
+      // Update local state immediately for instant UI feedback
+      set((state) => ({
+        ...state,
+        organizations: finalOrganizations,
+        lastFetchTime: Date.now()
+      }))
+
+      // Single lightweight API call to persist the change
+      await get().updateOrganization(id, { order: newOrder })
+    } catch (error) {
+      console.error('Error updating organization order:', error)
+      // Revert optimistic update on error
+      await get().fetchOrganizations(true)
       throw error
     }
   },

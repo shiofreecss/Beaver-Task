@@ -10,6 +10,33 @@ const organizationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
   color: z.string().optional(),
+  department: z.string().optional(),
+  categories: z.array(z.string()).optional().transform((val) => {
+    if (!val) return undefined;
+    return val; // Return the array as-is, including empty arrays
+  }),
+  website: z.string().optional().transform((val) => {
+    if (!val) return undefined;
+    // If it already starts with http:// or https://, return as is
+    if (val.startsWith('http://') || val.startsWith('https://')) return val;
+    // Otherwise, add https:// prefix
+    return `https://${val}`;
+  }),
+  documents: z.array(z.string()).optional().transform((val) => {
+    if (!val) return undefined;
+    if (val.length === 0) return []; // Return empty array instead of undefined
+    // Transform each document URL
+    const transformedDocs = val
+      .filter(doc => doc && doc.trim()) // Remove empty strings
+      .map(doc => {
+        // If it already starts with http:// or https://, return as is
+        if (doc.startsWith('http://') || doc.startsWith('https://')) return doc;
+        // Otherwise, add https:// prefix
+        return `https://${doc}`;
+      });
+    return transformedDocs.length > 0 ? transformedDocs : [];
+  }),
+  order: z.number().optional(),
 })
 
 // Simple in-memory cache for user IDs (reset on server restart)
@@ -79,7 +106,11 @@ export async function POST(request: NextRequest) {
 
     const organization = await convex.mutation(api.organizations.createOrganization, {
       ...validatedData,
-      userId: convexUserId
+      userId: convexUserId,
+      department: validatedData.department,
+      categories: validatedData.categories,
+      website: validatedData.website,
+      documents: validatedData.documents
     })
 
     return NextResponse.json(organization)
@@ -117,9 +148,13 @@ export async function PUT(request: NextRequest) {
     const validatedData = organizationSchema.parse(updateData)
 
     const organization = await convex.mutation(api.organizations.updateOrganization, {
-      id: id as any,
+      id: id,
       ...validatedData,
-      userId: convexUserId as any
+      userId: convexUserId,
+      department: validatedData.department,
+      categories: validatedData.categories,
+      website: validatedData.website,
+      documents: validatedData.documents
     })
 
     return NextResponse.json(organization)
@@ -140,6 +175,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Use cached user lookup
+    const convexUserId = await getOrCreateConvexUserId(
+      session.user.id,
+      session.user.name,
+      session.user.email
+    )
+
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
     
@@ -147,7 +189,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 })
     }
 
-    await convex.mutation(api.organizations.deleteOrganization, { id })
+    await convex.mutation(api.organizations.deleteOrganization, { 
+      id: id,
+      userId: convexUserId
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

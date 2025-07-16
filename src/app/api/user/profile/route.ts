@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: {
         id: session.user.id as string,
       },
@@ -40,8 +40,35 @@ export async function GET(req: Request) {
       },
     })
 
+    // If user doesn't exist in Prisma, create them with default settings
+    // This handles the case where user was created in Convex but not in Prisma
     if (!user) {
-      return new NextResponse('User not found', { status: 404 })
+      try {
+        user = await prisma.user.create({
+          data: {
+            id: session.user.id as string,
+            name: session.user.name || 'User',
+            email: session.user.email || '',
+            password: '', // Empty password since they're authenticated via Convex
+            image: null,
+            settings: JSON.stringify({
+              theme: 'system',
+              emailNotifications: true,
+              pushNotifications: true
+            }),
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            settings: true,
+          },
+        })
+      } catch (createError) {
+        console.error('Error creating user in Prisma:', createError)
+        return new NextResponse('Failed to create user profile', { status: 500 })
+      }
     }
 
     // Parse settings from JSON string
@@ -82,33 +109,58 @@ export async function PUT(req: Request) {
         },
       })
 
-      if (existingUser) {
+      if (existingUser && existingUser.id !== session.user.id) {
         return new NextResponse('Email already taken', { status: 400 })
       }
     }
 
-    // Update user profile
-    const updatedUser = await prisma.user.update({
+    // First, try to find the user
+    let user = await prisma.user.findUnique({
       where: {
         id: session.user.id as string,
       },
-      data: {
-        name: validatedData.name,
-        email: validatedData.email,
-        image: validatedData.image || null,
-        settings: JSON.stringify(validatedData.settings),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        settings: true,
-      },
     })
 
+    // If user doesn't exist in Prisma, create them
+    // This handles the case where user was created in Convex but not in Prisma
+    if (!user) {
+      try {
+        user = await prisma.user.create({
+          data: {
+            id: session.user.id as string,
+            name: validatedData.name,
+            email: validatedData.email,
+            password: '', // Empty password since they're authenticated via Convex
+            image: validatedData.image || null,
+            settings: JSON.stringify(validatedData.settings),
+          },
+        })
+      } catch (createError) {
+        console.error('Error creating user in Prisma:', createError)
+        return new NextResponse('Failed to create user profile', { status: 500 })
+      }
+    } else {
+      // Update existing user
+      try {
+        user = await prisma.user.update({
+          where: {
+            id: session.user.id as string,
+          },
+          data: {
+            name: validatedData.name,
+            email: validatedData.email,
+            image: validatedData.image || null,
+            settings: JSON.stringify(validatedData.settings),
+          },
+        })
+      } catch (updateError) {
+        console.error('Error updating user in Prisma:', updateError)
+        return new NextResponse('Failed to update user profile', { status: 500 })
+      }
+    }
+
     // Parse settings from JSON string
-    const settings = updatedUser.settings ? JSON.parse(updatedUser.settings) : {
+    const settings = user.settings ? JSON.parse(user.settings) : {
       theme: 'system',
       emailNotifications: true,
       pushNotifications: true
@@ -116,7 +168,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({
       user: {
-        ...updatedUser,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
         settings
       }
     })

@@ -51,10 +51,16 @@ export default defineSchema({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     userId: v.id("users"),
+    department: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
+    website: v.optional(v.string()),
+    documents: v.optional(v.array(v.string())),
+    order: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_userId", ["userId"]),
+    .index("by_userId", ["userId"])
+    .index("by_order", ["order"]),
 
   projects: defineTable({
     name: v.string(),
