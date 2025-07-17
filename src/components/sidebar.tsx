@@ -33,12 +33,26 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
-      await signOut({ redirect: false })
+      // Clear any local state or cached data
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Sign out with proper error handling
+      const result = await signOut({ 
+        redirect: false,
+        callbackUrl: '/login'
+      })
+      
+      console.log('Logout result:', result)
+      
       toast({
         title: 'Success',
         description: 'Logged out successfully!',
       })
+      
+      // Force navigation to login page
       router.push('/login')
+      router.refresh()
     } catch (error) {
       console.error('Logout error:', error)
       toast({
@@ -46,6 +60,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         description: 'Failed to log out. Please try again.',
         variant: 'destructive',
       })
+      
+      // Even if signOut fails, try to redirect to login
+      router.push('/login')
     }
   }
 

@@ -31,10 +31,12 @@ declare module "next-auth/jwt" {
 
 export const authOptions: NextAuthOptions = {
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
-    signIn: "/login"
+    signIn: "/login",
+    signOut: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -99,5 +101,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
     }
-  }
+  },
+  debug: process.env.NODE_ENV === 'development',
 } 
