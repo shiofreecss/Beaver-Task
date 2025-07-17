@@ -69,22 +69,30 @@ This guide explains how to deploy the Beaver Task Manager to Netlify with Convex
 
 ### Option B: Manual Deploy
 
-1. Build the project locally:
-   ```bash
-   npm run build:prod
-   ```
-2. Install Netlify CLI:
+1. Install Netlify CLI:
    ```bash
    npm install -g netlify-cli
    ```
-3. Login to Netlify:
+2. Login to Netlify:
    ```bash
    netlify login
    ```
-4. Deploy:
+3. Deploy using the convenience script:
    ```bash
+   npm run deploy:netlify
+   ```
+   Or manually:
+   ```bash
+   npm run build:prod
    netlify deploy --prod --dir=.next
    ```
+
+### Option C: Deploy and Verify
+
+Use the combined script to deploy and automatically verify the deployment:
+```bash
+SITE_URL=https://your-app.netlify.app npm run deploy:verify
+```
 
 ---
 
@@ -98,10 +106,28 @@ This guide explains how to deploy the Beaver Task Manager to Netlify with Convex
 
 ## 5. Test Deployment
 
+### Automated Testing
+1. Run the deployment verification script:
+   ```bash
+   SITE_URL=https://your-app.netlify.app npm run verify-deployment
+   ```
+   This script will test:
+   - Root path routing (should redirect to /login if not authenticated)
+   - Login and register page accessibility
+   - API routes functionality
+   - Protected routes behavior
+   - 404 handling
+
+### Manual Testing
 1. Visit your deployed app
-2. Try registering a new account
-3. Test creating tasks, projects, and other features
-4. Verify data persistence
+2. Test the authentication flow:
+   - Not logged in users should be redirected to `/login`
+   - After login, users should see the dashboard at `/`
+3. Try registering a new account
+4. Test creating tasks, projects, and other features
+5. Verify data persistence
+6. Test navigation between different pages
+7. Check that protected routes require authentication
 
 ---
 
@@ -116,11 +142,24 @@ This guide explains how to deploy the Beaver Task Manager to Netlify with Convex
 - Check `NEXTAUTH_SECRET` is set
 - Verify `NEXTAUTH_URL` matches your deployed URL
 - Ensure cookies are enabled
+- Clear browser cache and cookies
+
+### Routing Issues
+- Ensure `@netlify/plugin-nextjs` is installed and configured
+- Check that middleware is properly configured for Netlify
+- Verify that the build command uses `npm run build:prod`
+- Make sure no custom redirect rules conflict with Next.js routing
 
 ### Database Connection
 - Verify `NEXT_PUBLIC_CONVEX_URL` is correct
 - Check Convex deployment status
 - Review Convex function logs
+
+### Common Netlify-specific Issues
+- **Subdomain routing not working**: Ensure the `@netlify/plugin-nextjs` plugin is properly configured
+- **Authentication redirects failing**: Check that `NEXTAUTH_URL` includes the correct protocol (https://)
+- **API routes not working**: Verify that API routes are not being cached by adding proper headers
+- **Static files not loading**: Check that the publish directory is set to `.next`
 
 ---
 

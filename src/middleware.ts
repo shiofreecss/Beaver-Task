@@ -40,12 +40,33 @@ export default withAuth(
       return securityResponse
     }
     
-    console.log(req.nextUrl.pathname)
-    console.log(req.nextauth.token)
+    // Only log in development to avoid Netlify function logs spam
+    if (process.env.NODE_ENV === 'development') {
+      console.log(req.nextUrl.pathname)
+      console.log(req.nextauth.token)
+    }
+    
+    // For authenticated users, continue to the requested page
+    return NextResponse.next()
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl
+        
+        // Allow access to public pages without authentication
+        if (pathname.startsWith('/login') ||
+            pathname.startsWith('/register') ||
+            pathname.startsWith('/presentation') ||
+            pathname.startsWith('/privacy') ||
+            pathname.startsWith('/terms') ||
+            pathname.startsWith('/reset-password')) {
+          return true
+        }
+        
+        // For all other pages, require authentication
+        return !!token
+      }
     },
   }
 )
@@ -58,13 +79,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - login (login page)
-     * - register (register page)
-     * - presentation (presentation page)
-     * - privacy (privacy policy page)
-     * - terms (terms of service page)
-     * - root path (handled by page component)
+     * - .netlify (Netlify functions)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation|privacy|terms|$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|\\.netlify).*)",
   ],
-} 
+}

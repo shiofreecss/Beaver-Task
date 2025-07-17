@@ -5,10 +5,14 @@ const nextConfig = {
   poweredByHeader: false,
   generateEtags: false,
   
+  // Netlify deployment optimizations
+  trailingSlash: false,
+  
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
+    unoptimized: process.env.NETLIFY === 'true', // Disable image optimization on Netlify
   },
 
   // Security headers
