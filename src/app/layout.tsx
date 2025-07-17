@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   keywords: 'task management, productivity, habits, projects, privacy-first',
   authors: [{ name: 'Beaver Task Team' }],
   robots: 'index, follow',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export const viewport: Viewport = {

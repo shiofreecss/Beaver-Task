@@ -1,6 +1,5 @@
 import { LoginForm } from '@/components/auth/login-form'
 import { LoginThemeToggle } from '@/components/auth/login-theme-toggle'
-import { BeaverLogo } from '@/components/ui/beaver-logo'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { ArrowDown, ChevronRight } from 'lucide-react'
@@ -14,8 +13,8 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto w-full">
           {/* Logo */}
           <div className="flex items-center justify-center lg:justify-start mb-8 mt-8 lg:mt-0">
-            <div className="mr-3">
-              <BeaverLogo size={40} className="drop-shadow-lg" />
+            <div className="mr-3 text-4xl">
+              🦫
             </div>
             <span className="text-2xl font-semibold text-foreground">Beaver Task</span>
           </div>
@@ -90,7 +89,8 @@ export default function LoginPage() {
           <Card className="p-6 mb-8">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <BeaverLogo size={20} />
+                {/* BeaverLogo size={20} */}
+                <span className="text-2xl">🦫</span>
               </div>
               <div className="flex-1">
                 <p className="text-card-foreground text-sm leading-relaxed">
