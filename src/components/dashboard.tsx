@@ -13,8 +13,6 @@ import {
   Menu
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { FullScreenLoading } from '@/components/ui/loading-screen'
-import { useLoadingManager } from '@/components/ui/loading-manager'
 import { useTaskStore } from '@/store/tasks'
 import { useProjectStore } from '@/store/projects'
 import { useHabitStore } from '@/store/habits'
@@ -70,8 +68,7 @@ function DashboardOverview() {
   }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions])
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+    <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -122,9 +119,9 @@ function DashboardOverview() {
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [isLoading, setIsLoading] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { loadingStates, setLoadingState, resetLoadingStates } = useLoadingManager()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Initialize all stores
   const fetchTasks = useTaskStore(state => state.fetchTasks)
@@ -137,21 +134,26 @@ export function Dashboard() {
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        // Load data with individual tracking
-        const promises = [
-          fetchTasks().then(() => setLoadingState('tasks', false)).catch(() => setLoadingState('tasks', false)),
-          fetchProjects().then(() => setLoadingState('projects', false)).catch(() => setLoadingState('projects', false)),
-          fetchHabits().then(() => setLoadingState('habits', false)).catch(() => setLoadingState('habits', false)),
-          fetchSessions().then(() => setLoadingState('pomodoro', false)).catch(() => setLoadingState('pomodoro', false)),
-          fetchNotes().then(() => setLoadingState('notes', false)).catch(() => setLoadingState('notes', false)),
-          fetchOrganizations().then(() => setLoadingState('organizations', false)).catch(() => setLoadingState('organizations', false))
-        ]
-
-        await Promise.allSettled(promises)
+        setIsLoading(true)
+        setError(null)
+        
+        // Load all data with proper error handling
+        await Promise.allSettled([
+          fetchTasks(),
+          fetchProjects(),
+          fetchHabits(),
+          fetchSessions(),
+          fetchNotes(),
+          fetchOrganizations()
+        ])
+        
+        // Preload critical components after initial load
+        preloadCriticalComponents()
       } catch (error) {
         console.error('Error loading data:', error)
-        // Mark all as loaded even if some fail
-        resetLoadingStates()
+        setError('Failed to load application data')
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -160,18 +162,11 @@ export function Dashboard() {
     // Timeout to ensure loading doesn't get stuck
     const timeout = setTimeout(() => {
       console.log('Loading timeout reached, forcing completion')
-      resetLoadingStates()
+      setIsLoading(false)
     }, 10000) // 10 second timeout
 
     return () => clearTimeout(timeout)
-  }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions, fetchNotes, fetchOrganizations, setLoadingState, resetLoadingStates])
-
-  const handleLoadingComplete = () => {
-    console.log('Loading complete, hiding loading screen')
-    setIsLoading(false)
-    // Preload critical components after initial load
-    preloadCriticalComponents()
-  }
+  }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions, fetchNotes, fetchOrganizations])
 
   const renderContent = () => {
     switch (activeTab) {
@@ -218,13 +213,28 @@ export function Dashboard() {
           </ErrorBoundary>
         )
       default:
-        return <DashboardOverview />
+        return (
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <p className="text-destructive mb-2">{error}</p>
+                  <Button onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <DashboardOverview />
+            )}
+          </div>
+        )
     }
-  }
-
-  // Show loading screen until data is loaded
-  if (isLoading) {
-    return <FullScreenLoading message="Loading your workspace..." />
   }
 
   return (

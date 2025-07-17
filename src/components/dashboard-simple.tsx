@@ -81,10 +81,7 @@ const DashboardOverview = memo(function DashboardOverview() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -103,8 +100,7 @@ const DashboardOverview = memo(function DashboardOverview() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+    <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -156,6 +152,50 @@ const DashboardOverview = memo(function DashboardOverview() {
 export const DashboardSimple = memo(function DashboardSimple() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Initialize all stores
+  const fetchTasks = useTaskStore(state => state.fetchTasks)
+  const fetchProjects = useProjectStore(state => state.fetchProjects)
+  const fetchHabits = useHabitStore(state => state.fetchHabits)
+  const fetchSessions = usePomodoroStore(state => state.fetchSessions)
+  const fetchNotes = useNoteStore(state => state.fetchNotes)
+  const fetchOrganizations = useOrganizationStore(state => state.fetchOrganizations)
+
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        // Load all data with proper error handling
+        await Promise.allSettled([
+          fetchTasks(),
+          fetchProjects(),
+          fetchHabits(),
+          fetchSessions(),
+          fetchNotes(),
+          fetchOrganizations()
+        ])
+      } catch (error) {
+        console.error('Error loading data:', error)
+        setError('Failed to load application data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadAllData()
+
+    // Timeout to ensure loading doesn't get stuck
+    const timeout = setTimeout(() => {
+      console.log('Loading timeout reached, forcing completion')
+      setIsLoading(false)
+    }, 10000) // 10 second timeout
+
+    return () => clearTimeout(timeout)
+  }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions, fetchNotes, fetchOrganizations])
 
   const renderContent = () => {
     switch (activeTab) {
@@ -174,7 +214,27 @@ export const DashboardSimple = memo(function DashboardSimple() {
       case 'calendar':
         return <CalendarView />
       default:
-        return <DashboardOverview />
+        return (
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <p className="text-destructive mb-2">{error}</p>
+                  <Button onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <DashboardOverview />
+            )}
+          </div>
+        )
     }
   }
 
