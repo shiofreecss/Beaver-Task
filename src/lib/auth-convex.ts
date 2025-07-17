@@ -97,6 +97,13 @@ export const authOptions: NextAuthOptions = {
           name: token.name as string | null
         }
       }
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
   debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
