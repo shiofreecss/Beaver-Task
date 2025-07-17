@@ -1,5 +1,5 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
@@ -13,8 +13,12 @@ export const metadata: Metadata = {
   description: 'Organize your tasks, projects, and habits with confidence. Privacy-first task management that helps you stay productive.',
   keywords: 'task management, productivity, habits, projects, privacy-first',
   authors: [{ name: 'Beaver Task Team' }],
-  viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({

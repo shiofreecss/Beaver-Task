@@ -58,14 +58,12 @@ export const authOptions: NextAuthOptions = {
           }) as UserWithPassword | null
 
           if (!user) {
-            console.log('User not found:', credentials.email)
             return null
           }
 
           const isPasswordValid = await compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            console.log('Invalid password for user:', credentials.email)
             return null
           }
 
@@ -75,7 +73,6 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
           }
         } catch (error) {
-          console.error('Auth error:', error)
           return null
         }
       }
@@ -102,5 +99,5 @@ export const authOptions: NextAuthOptions = {
       }
     }
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
 } 
