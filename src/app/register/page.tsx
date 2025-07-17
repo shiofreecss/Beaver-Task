@@ -1,5 +1,6 @@
 import { RegisterForm } from '@/components/auth/register-form'
 import { LoginThemeToggle } from '@/components/auth/login-theme-toggle'
+import { LoginSlides } from '@/components/auth/login-slides'
 import { BeaverLogo } from '@/components/ui/beaver-logo'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
@@ -77,47 +78,9 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right Section - Demo/Example */}
+      {/* Right Section - Interactive Slides */}
       <div className="hidden lg:flex flex-1 bg-muted/50 items-center justify-center relative">
-        <div className="max-w-md mx-auto px-8">
-          {/* Demo Chat Bubble */}
-          <Card className="p-6 mb-8">
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <BeaverLogo size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="text-card-foreground text-sm leading-relaxed">
-                  "Welcome to Beaver Task! Let's get you set up with your first project and start building better habits."
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Feature Highlights */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-muted-foreground">Free forever plan with unlimited tasks</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-muted-foreground">Cross-platform sync across all devices</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-muted-foreground">Privacy-first with end-to-end encryption</span>
-            </div>
-          </div>
-
-          {/* Pagination Dots */}
-          <div className="flex justify-center space-x-2 mt-12">
-            <div className="w-2 h-2 bg-muted-foreground/30 rounded-full"></div>
-            <div className="w-2 h-2 bg-muted-foreground/50 rounded-full"></div>
-            <div className="w-2 h-2 bg-muted-foreground/30 rounded-full"></div>
-            <div className="w-2 h-2 bg-muted-foreground/30 rounded-full"></div>
-          </div>
-        </div>
+        <LoginSlides />
       </div>
     </div>
   )

@@ -60,7 +60,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - login (login page)
      * - register (register page)
+     * - presentation (presentation page)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|login|register).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation).*)",
   ],
 } 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User, LogOut, Calendar, Menu, ChevronLeft, X } from 'lucide-react'
+import { Building, FolderKanban, CheckSquare, FileText, Target, Timer, BarChart3, Settings, User, LogOut, Calendar, Menu, ChevronLeft, X, Presentation } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useSession, signOut } from 'next-auth/react'
@@ -32,6 +32,10 @@ export function Sidebar({ activeTab, onTabChange, isMobileOpen = false, onMobile
     { id: 'habits', label: 'Habits', icon: Target },
     { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
+  ]
+
+  const specialItems = [
+    { id: 'presentation', label: 'App Presentation', icon: Presentation, href: '/presentation' },
   ]
 
   // Check if device is mobile/tablet
@@ -155,6 +159,28 @@ export function Sidebar({ activeTab, onTabChange, isMobileOpen = false, onMobile
             )
           })}
         </ul>
+        
+        {/* Special Items */}
+        <div className="mt-6 pt-6 border-t border-border">
+          <ul className="space-y-2">
+            {specialItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <li key={item.id}>
+                  <Button
+                    variant="ghost"
+                    className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start'} text-left transition-all duration-200`}
+                    onClick={() => router.push(item.href)}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <Icon className={`h-4 w-4 ${isCollapsed ? '' : 'mr-3'}`} />
+                    {!isCollapsed && item.label}
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       </nav>
       
       {/* Footer */}
