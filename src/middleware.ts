@@ -40,12 +40,24 @@ export default withAuth(
       return securityResponse
     }
     
+    // Allow access to root path without authentication
+    if (req.nextUrl.pathname === '/') {
+      return NextResponse.next()
+    }
+    
     console.log(req.nextUrl.pathname)
     console.log(req.nextauth.token)
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token, req }) => {
+        // Allow root path without authentication
+        if (req.nextUrl.pathname === '/') {
+          return true
+        }
+        // Require authentication for all other paths
+        return !!token
+      }
     },
   }
 )
@@ -61,8 +73,9 @@ export const config = {
      * - login (login page)
      * - register (register page)
      * - presentation (presentation page)
-     * - root path (landing page)
+     * - privacy (privacy policy page)
+     * - terms (terms of service page)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation|$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation|privacy|terms).*)",
   ],
 } 

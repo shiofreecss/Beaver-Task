@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardSimple } from '@/components/dashboard-simple'
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/lib/auth-convex';
 import { FullScreenLoading } from '@/components/ui/loading-screen';
 import { Suspense } from 'react';
 import Link from 'next/link';
