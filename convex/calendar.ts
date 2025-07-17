@@ -50,7 +50,7 @@ export const getCalendarEvents = query({
       .map(task => ({
         id: task._id,
         title: task.title,
-        start: new Date(task.dueDate!),
+        start: task.dueDate!, // Use timestamp directly
         allDay: true,
         backgroundColor: getStatusColor(task.status),
         borderColor: getStatusColor(task.status),
@@ -66,7 +66,7 @@ export const getCalendarEvents = query({
       .map(project => ({
         id: project._id,
         title: `📁 ${project.name}`,
-        start: new Date(project.dueDate!),
+        start: project.dueDate!, // Use timestamp directly
         allDay: true,
         backgroundColor: project.color || '#3b82f6',
         borderColor: project.color || '#3b82f6',
@@ -93,7 +93,7 @@ export const getCalendarEvents = query({
     const habitEvents = Array.from(habitEventsMap.entries()).map(([dateStr, habitNames]) => ({
       id: `habits-${dateStr}`,
       title: `✅ ${habitNames.join(', ')}`,
-      start: new Date(dateStr),
+      start: new Date(dateStr).getTime(), // Convert to timestamp
       allDay: true,
       backgroundColor: '#10b981',
       borderColor: '#10b981',
@@ -108,8 +108,8 @@ export const getCalendarEvents = query({
       .map(session => ({
         id: session._id,
         title: `🍅 ${session.type} (${session.duration}min)`,
-        start: new Date(session.startTime!),
-        end: new Date(session.endTime!),
+        start: session.startTime!, // Use timestamp directly
+        end: session.endTime!, // Use timestamp directly
         backgroundColor: getTypeColor(session.type),
         borderColor: getTypeColor(session.type),
         textColor: '#fff',

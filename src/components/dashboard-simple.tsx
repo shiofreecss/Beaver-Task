@@ -10,8 +10,10 @@ import {
   Timer,
   TrendingUp,
   Calendar,
-  Loader2
+  Loader2,
+  Menu
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Sidebar } from '@/components/sidebar'
 import { DashboardCharts } from '@/components/dashboard/charts'
 import { useTaskStore } from '@/store/tasks'
@@ -78,12 +80,10 @@ const DashboardOverview = memo(function DashboardOverview() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="text-lg">Loading dashboard...</span>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     )
@@ -91,15 +91,12 @@ const DashboardOverview = memo(function DashboardOverview() {
 
   if (error) {
     return (
-      <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-          >
-            Try again
-          </button>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive mb-2">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
         </div>
       </div>
     )
@@ -158,6 +155,7 @@ const DashboardOverview = memo(function DashboardOverview() {
 
 export const DashboardSimple = memo(function DashboardSimple() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const renderContent = () => {
     switch (activeTab) {
@@ -182,8 +180,28 @@ export const DashboardSimple = memo(function DashboardSimple() {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 overflow-auto min-w-0">
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="mobile-menu-button"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Sidebar */}
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
+      
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto min-w-0 lg:ml-0">
         {renderContent()}
       </main>
     </div>

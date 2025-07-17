@@ -9,9 +9,11 @@ import {
   Target, 
   Timer,
   TrendingUp,
-  Calendar
+  Calendar,
+  Menu
 } from 'lucide-react'
-import { LoadingScreen } from '@/components/ui/loading-screen'
+import { Button } from '@/components/ui/button'
+import { FullScreenLoading } from '@/components/ui/loading-screen'
 import { useLoadingManager } from '@/components/ui/loading-manager'
 import { useTaskStore } from '@/store/tasks'
 import { useProjectStore } from '@/store/projects'
@@ -121,6 +123,7 @@ function DashboardOverview() {
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { loadingStates, setLoadingState, resetLoadingStates } = useLoadingManager()
 
   // Initialize all stores
@@ -221,14 +224,34 @@ export function Dashboard() {
 
   // Show loading screen until data is loaded
   if (isLoading) {
-    return <LoadingScreen onComplete={handleLoadingComplete} loadingStates={loadingStates} />
+    return <FullScreenLoading message="Loading your workspace..." />
   }
 
   return (
     <ErrorBoundary>
       <div className="flex h-screen bg-background">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 overflow-auto min-w-0">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="mobile-menu-button"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Sidebar */}
+        <Sidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab}
+          isMobileOpen={isMobileMenuOpen}
+          onMobileToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto min-w-0 lg:ml-0">
           {renderContent()}
         </main>
       </div>
