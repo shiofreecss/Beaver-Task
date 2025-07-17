@@ -13,7 +13,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 xl:px-24">
         <div className="max-w-md mx-auto w-full">
           {/* Logo */}
-          <div className="flex items-center mb-8">
+          <div className="flex items-center justify-center lg:justify-start mb-8 mt-8 lg:mt-0">
             <div className="mr-3">
               <BeaverLogo size={40} className="drop-shadow-lg" />
             </div>
@@ -23,7 +23,7 @@ export default function LoginPage() {
           {/* Main Content */}
           <div className="space-y-6">
             {/* Slogan */}
-            <div className="space-y-2">
+            <div className="space-y-2 text-center lg:text-left">
               <h1 className="text-4xl font-serif text-foreground leading-tight">
                 Your productivity, amplified.
               </h1>
@@ -73,12 +73,12 @@ export default function LoginPage() {
             </p>
 
             {/* Learn More Button */}
-            <div className="text-center">
+            {/*<div className="text-center">
               <button className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Learn more
                 <ArrowDown className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </div>*/}
           </div>
         </div>
       </div>
