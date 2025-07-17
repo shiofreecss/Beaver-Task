@@ -82,4 +82,28 @@ export const updateKanbanColumn = mutation({
 
     return await ctx.db.get(columnId);
   },
+});
+
+export const deleteKanbanColumn = mutation({
+  args: {
+    columnId: v.id("kanbanColumns"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { columnId, userId } = args;
+
+    // Verify column exists and ownership through project
+    const column = await ctx.db.get(columnId);
+    if (!column) throw new Error("Column not found");
+
+    if (column.projectId) {
+      const project = await ctx.db.get(column.projectId);
+      if (!project || project.userId !== userId) {
+        throw new Error("Unauthorized");
+      }
+    }
+
+    // Delete the column
+    await ctx.db.delete(columnId);
+  },
 }); 

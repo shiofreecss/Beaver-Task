@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Badge } from '@/components/ui/badge'
 import { useProjectStore } from '@/store/projects'
 import { useNoteStore, Note } from '@/store/notes'
+import { useTaskStore } from '@/store/tasks'
 
 type ViewMode = 'grid' | 'list' | 'table'
 
@@ -25,10 +26,12 @@ interface NoteFormData {
   content: string
   tags: string
   projectId: string
+  taskId: string
 }
 
 interface NoteWithProject extends Note {
   projectName?: string
+  taskName?: string
 }
 
 export function NotesView() {
@@ -46,11 +49,13 @@ export function NotesView() {
   const updateNote = useNoteStore((state) => state.updateNote)
   const deleteNote = useNoteStore((state) => state.deleteNote)
   const projects = useProjectStore((state) => state.projects)
+  const tasks = useTaskStore((state) => state.tasks)
 
   // Transform notes to include project names
   const notesWithProjects: NoteWithProject[] = notes.map(note => ({
     ...note,
-    projectName: note.projectId ? projects.find(p => p.id === note.projectId)?.name : undefined
+    projectName: note.projectId ? projects.find(p => p.id === note.projectId)?.name : undefined,
+    taskName: note.taskId ? tasks.find(t => t.id === note.taskId)?.title : undefined
   }))
 
   // Fetch notes on component mount
@@ -78,7 +83,8 @@ export function NotesView() {
         title: noteData.title,
         content: noteData.content,
         tags: noteData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId
+        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId,
+        taskId: noteData.taskId === 'none' ? undefined : noteData.taskId
       })
       setShowCreateModal(false)
       toast({
@@ -103,7 +109,8 @@ export function NotesView() {
         title: noteData.title,
         content: noteData.content,
         tags: noteData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId
+        projectId: noteData.projectId === 'none' ? undefined : noteData.projectId,
+        taskId: noteData.taskId === 'none' ? undefined : noteData.taskId
       })
       setEditingNote(null)
       toast({
@@ -172,12 +179,19 @@ export function NotesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setEditingNote(note)}>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation() // Prevent card click
+                    setEditingNote(note)
+                    setPreviewNote(null) // Ensure preview modal doesn't open
+                  }}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => handleDeleteNote(note.id)}
+                    onClick={(e) => {
+                      e.stopPropagation() // Prevent card click
+                      handleDeleteNote(note.id)
+                    }}
                     className="text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -203,12 +217,20 @@ export function NotesView() {
                 </div>
               )}
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                {note.projectName && (
-                  <div className="flex items-center gap-1">
-                    <FolderKanban className="h-3 w-3" />
-                    <span className="truncate">{note.projectName}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {note.projectName && (
+                    <div className="flex items-center gap-1">
+                      <FolderKanban className="h-3 w-3" />
+                      <span className="truncate">{note.projectName}</span>
+                    </div>
+                  )}
+                  {note.taskName && (
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      <span className="truncate">{note.taskName}</span>
+                    </div>
+                  )}
+                </div>
                 <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
               </div>
             </div>
@@ -252,6 +274,12 @@ export function NotesView() {
                         {note.projectName}
                       </Badge>
                     )}
+                    {note.taskName && (
+                      <Badge variant="outline" className="text-xs">
+                        <FileText className="mr-1 h-3 w-3" />
+                        {note.taskName}
+                      </Badge>
+                    )}
                     <span className="text-sm text-muted-foreground">
                       {new Date(note.updatedAt).toLocaleDateString()}
                     </span>
@@ -272,12 +300,19 @@ export function NotesView() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setEditingNote(note)}>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation() // Prevent card click
+                    setEditingNote(note)
+                    setPreviewNote(null) // Ensure preview modal doesn't open
+                  }}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => handleDeleteNote(note.id)}
+                    onClick={(e) => {
+                      e.stopPropagation() // Prevent card click
+                      handleDeleteNote(note.id)
+                    }}
                     className="text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -303,6 +338,7 @@ export function NotesView() {
                 <th className="text-left p-4 font-semibold">Content</th>
                 <th className="text-left p-4 font-semibold">Tags</th>
                 <th className="text-left p-4 font-semibold">Project</th>
+                <th className="text-left p-4 font-semibold">Task</th>
                 <th className="text-left p-4 font-semibold">Updated</th>
                 <th className="text-left p-4 font-semibold">Actions</th>
               </tr>
@@ -343,6 +379,16 @@ export function NotesView() {
                     )}
                   </td>
                   <td className="p-4">
+                    {note.taskName ? (
+                      <Badge variant="outline" className="text-xs">
+                        <FileText className="mr-1 h-3 w-3" />
+                        {note.taskName}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No task</span>
+                    )}
+                  </td>
+                  <td className="p-4">
                     <span className="text-sm">
                       {new Date(note.updatedAt).toLocaleDateString()}
                     </span>
@@ -355,12 +401,19 @@ export function NotesView() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => setEditingNote(note)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation() // Prevent card click
+                          setEditingNote(note)
+                          setPreviewNote(null) // Ensure preview modal doesn't open
+                        }}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={(e) => {
+                            e.stopPropagation() // Prevent card click
+                            handleDeleteNote(note.id)
+                          }}
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -460,42 +513,53 @@ export function NotesView() {
         renderCurrentView()
       )}
 
-      <CreateNoteModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onSubmit={handleCreateNote}
-        projects={projects}
-      />
+      {/* Modals */}
+      <>
+        {showCreateModal && (
+          <CreateNoteModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            onSubmit={handleCreateNote}
+            projects={projects}
+            tasks={tasks}
+          />
+        )}
 
-      {editingNote && (
-        <CreateNoteModal
-          open={true}
-          onOpenChange={(open) => !open && setEditingNote(null)}
-          onSubmit={handleEditNote}
-          initialData={{
-            title: editingNote.title,
-            content: editingNote.content,
-            tags: editingNote.tags.join(', '),
-            projectId: editingNote.projectId || ''
-          }}
-          projects={projects}
-        />
-      )}
+        {editingNote && (
+          <CreateNoteModal
+            open={true}
+            onOpenChange={(open) => !open && setEditingNote(null)}
+            onSubmit={handleEditNote}
+            initialData={{
+              title: editingNote.title,
+              content: editingNote.content,
+              tags: editingNote.tags.join(', '),
+              projectId: editingNote.projectId || '',
+              taskId: editingNote.taskId || ''
+            }}
+            projects={projects}
+            tasks={tasks}
+          />
+        )}
 
-      <NotePreviewModal
-        note={previewNote}
-        isOpen={!!previewNote}
-        onClose={() => setPreviewNote(null)}
-        onEdit={(noteData) => {
-          if (previewNote) {
-            handleEditNote({
-              ...noteData,
-              projectId: previewNote.projectId || 'none'
-            })
-          }
-          setPreviewNote(null)
-        }}
-      />
+        {previewNote && !editingNote && (
+          <NotePreviewModal
+            note={previewNote}
+            isOpen={!!previewNote}
+            onClose={() => setPreviewNote(null)}
+            onEdit={(noteData) => {
+              if (previewNote) {
+                handleEditNote({
+                  ...noteData,
+                  projectId: previewNote.projectId || '',
+                  taskId: previewNote.taskId || ''
+                })
+              }
+              setPreviewNote(null)
+            }}
+          />
+        )}
+      </>
     </div>
   )
 } 

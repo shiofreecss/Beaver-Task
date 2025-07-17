@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
+
+// TODO: Refactor this endpoint to use Convex instead of Prisma.
+// All code using 'prisma' is commented out below
 
 export async function PATCH(
   request: Request,
@@ -21,25 +24,25 @@ export async function PATCH(
     }
 
     // Verify the task exists and belongs to the user
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
-      include: {
-        project: {
-          include: {
-            organization: true
-          }
-        }
-      }
-    })
+    // const task = await prisma.task.findUnique({
+    //   where: { id: params.id },
+    //   include: {
+    //     project: {
+    //       include: {
+    //         organization: true
+    //       }
+    //     }
+    //   }
+    // })
 
-    if (!task) {
-      return new NextResponse('Task not found', { status: 404 })
-    }
+    // if (!task) {
+    //   return new NextResponse('Task not found', { status: 404 })
+    // }
 
     // Verify task ownership - check if task belongs to the user directly
-    if (task.userId !== session.user.id) {
-      return new NextResponse('Unauthorized', { status: 401 })
-    }
+    // if (task.userId !== session.user.id) {
+    //   return new NextResponse('Unauthorized', { status: 401 })
+    // }
 
     // Map column IDs to status values for default columns
     const columnIdToStatus: Record<string, string> = {
@@ -62,20 +65,21 @@ export async function PATCH(
       updateData.columnId = null
     }
 
-    const updatedTask = await prisma.task.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    })
+    // const updatedTask = await prisma.task.update({
+    //   where: { id: params.id },
+    //   data: updateData,
+    //   include: {
+    //     project: {
+    //       select: {
+    //         id: true,
+    //         name: true
+    //       }
+    //     }
+    //   }
+    // })
 
-    return NextResponse.json(updatedTask)
+    // return NextResponse.json(updatedTask)
+    return new NextResponse('This endpoint is not yet implemented with Convex.', { status: 501 })
   } catch (error) {
     console.error('Error moving task:', error)
     return new NextResponse('Internal Server Error', { status: 500 })

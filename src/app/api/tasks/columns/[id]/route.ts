@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import { prisma } from '@/lib/prisma'
+import { convexHttp } from '@/lib/convex'
+import { api } from '../../../../../../convex/_generated/api'
 
 export async function PATCH(
   request: Request,
@@ -9,46 +10,44 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
+
+    // Ensure user exists in Convex database
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
+      id: session.user.id,
+      name: session.user.name || 'Unknown User',
+      email: session.user.email || '',
+    })
 
     const body = await request.json()
     const { name, color, order } = body
 
-    // Verify the column exists
-    const existingColumn = await prisma.kanbanColumn.findUnique({
-      where: { id: params.id },
-      include: {
-        project: {
-          include: {
-            organization: true
-          }
-        }
-      }
+    // Update column using Convex
+    const updatedColumn = await convexHttp.mutation(api.kanban.updateKanbanColumn, {
+      columnId: params.id as any,
+      userId: convexUserId,
+      name,
+      color,
+      order,
     })
 
-    if (!existingColumn) {
+    if (!updatedColumn) {
       return new NextResponse('Column not found', { status: 404 })
     }
 
-    // If the column belongs to a project, verify ownership
-    if (existingColumn.project?.organization && existingColumn.project.organization.userId !== session.user.id as string) {
-      return new NextResponse('Unauthorized', { status: 401 })
-    } else if (existingColumn.project && !existingColumn.project.organization && existingColumn.project.userId !== session.user.id as string) {
-      return new NextResponse('Unauthorized', { status: 401 })
+    const transformedColumn = {
+      id: updatedColumn._id,
+      name: updatedColumn.name,
+      color: updatedColumn.color,
+      order: updatedColumn.order,
+      projectId: updatedColumn.projectId || null,
+      createdAt: new Date(updatedColumn.createdAt).toISOString(),
+      updatedAt: new Date(updatedColumn.updatedAt).toISOString(),
     }
 
-    const column = await prisma.kanbanColumn.update({
-      where: { id: params.id },
-      data: {
-        ...(name && { name }),
-        ...(color && { color }),
-        ...(typeof order === 'number' && { order })
-      }
-    })
-
-    return NextResponse.json(column)
+    return NextResponse.json(transformedColumn)
   } catch (error) {
     console.error('Error updating column:', error)
     return new NextResponse('Internal Server Error', { status: 500 })
@@ -61,35 +60,21 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    // Verify the column exists
-    const existingColumn = await prisma.kanbanColumn.findUnique({
-      where: { id: params.id },
-      include: {
-        project: {
-          include: {
-            organization: true
-          }
-        }
-      }
+    // Ensure user exists in Convex database
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
+      id: session.user.id,
+      name: session.user.name || 'Unknown User',
+      email: session.user.email || '',
     })
 
-    if (!existingColumn) {
-      return new NextResponse('Column not found', { status: 404 })
-    }
-
-    // If the column belongs to a project, verify ownership
-    if (existingColumn.project?.organization && existingColumn.project.organization.userId !== session.user.id as string) {
-      return new NextResponse('Unauthorized', { status: 401 })
-    } else if (existingColumn.project && !existingColumn.project.organization && existingColumn.project.userId !== session.user.id as string) {
-      return new NextResponse('Unauthorized', { status: 401 })
-    }
-
-    await prisma.kanbanColumn.delete({
-      where: { id: params.id }
+    // Delete column using Convex
+    await convexHttp.mutation(api.kanban.deleteKanbanColumn, {
+      columnId: params.id as any,
+      userId: convexUserId,
     })
 
     return new NextResponse(null, { status: 204 })

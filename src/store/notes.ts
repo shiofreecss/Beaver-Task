@@ -6,17 +6,21 @@ export interface Note {
   content: string
   tags: string[]
   projectId?: string
+  taskId?: string
   createdAt: string
   updatedAt: string
+  projectName?: string
+  taskName?: string
 }
 
 interface NoteState {
   notes: Note[]
   setNotes: (notes: Note[]) => void
-  addNote: (note: { title: string; content: string; tags: string[] | string; projectId?: string }) => Promise<void>
-  updateNote: (id: string, note: Partial<{ title: string; content: string; tags: string[] | string; projectId?: string }>) => Promise<void>
+  addNote: (note: { title: string; content: string; tags: string[] | string; projectId?: string; taskId?: string }) => Promise<void>
+  updateNote: (id: string, note: Partial<{ title: string; content: string; tags: string[] | string; projectId?: string; taskId?: string }>) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   getNotesByProject: (projectId: string) => Note[]
+  getNotesByTask: (taskId: string) => Note[]
   fetchNotes: () => Promise<void>
 }
 
@@ -47,15 +51,21 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   updateNote: async (id, note) => {
     try {
+      console.log('Updating note:', { id, note })
       const response = await fetch('/api/notes-convex', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...note }),
       })
       
-      if (!response.ok) throw new Error('Failed to update note')
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Failed to update note:', response.status, errorText)
+        throw new Error(`Failed to update note: ${response.status} ${errorText}`)
+      }
       
       const updatedNote = await response.json()
+      console.log('Note updated successfully:', updatedNote)
       set((state) => ({
         notes: state.notes.map((n) => 
           n.id === id ? updatedNote : n
@@ -86,6 +96,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   getNotesByProject: (projectId) => {
     return get().notes.filter((note) => note.projectId === projectId)
+  },
+
+  getNotesByTask: (taskId) => {
+    return get().notes.filter((note) => note.taskId === taskId)
   },
 
   fetchNotes: async () => {

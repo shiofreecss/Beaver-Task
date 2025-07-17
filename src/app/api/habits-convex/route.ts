@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
 
@@ -11,6 +11,8 @@ const habitSchema = z.object({
   frequency: z.string().default('DAILY'),
   target: z.number().default(1),
   color: z.string().optional(),
+  customDays: z.array(z.number()).optional(),
+  customPeriod: z.string().optional(),
 })
 
 export async function GET() {
@@ -22,20 +24,24 @@ export async function GET() {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
     })
 
-    const habits = await convex.query(api.habits.getUserHabits, {
+    const habits = await convexHttp.query(api.habits.getUserHabits, {
       userId: convexUserId
     })
 
     return NextResponse.json(habits)
   } catch (error) {
     console.error('Error fetching habits:', error)
-    return NextResponse.json({ error: 'Failed to fetch habits' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    return NextResponse.json({ 
+      error: 'Failed to fetch habits', 
+      details: errorMessage 
+    }, { status: 500 })
   }
 }
 
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = habitSchema.parse(body)
 
-    const habit = await convex.mutation(api.habits.createHabit, {
+    const habit = await convexHttp.mutation(api.habits.createHabit, {
       ...validatedData,
       userId: convexUserId
     })
@@ -81,7 +87,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -96,7 +102,7 @@ export async function PUT(request: NextRequest) {
 
     // Handle habit completion toggle
     if (typeof completed === 'boolean') {
-      const habit = await convex.mutation(api.habits.toggleHabitCompletion, {
+      const habit = await convexHttp.mutation(api.habits.toggleHabitCompletion, {
         habitId: id as any,
         userId: convexUserId,
         completed
@@ -106,7 +112,7 @@ export async function PUT(request: NextRequest) {
 
     // Handle habit update
     const validatedData = habitSchema.parse(updateData)
-    const habit = await convex.mutation(api.habits.updateHabit, {
+    const habit = await convexHttp.mutation(api.habits.updateHabit, {
       habitId: id as any,
       ...validatedData,
       userId: convexUserId
@@ -131,7 +137,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -144,7 +150,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Habit ID is required' }, { status: 400 })
     }
 
-    await convex.mutation(api.habits.deleteHabit, {
+    await convexHttp.mutation(api.habits.deleteHabit, {
       habitId: id as any,
       userId: convexUserId
     })

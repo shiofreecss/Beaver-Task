@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth-convex'
 import * as z from 'zod'
 
@@ -27,61 +27,62 @@ export async function GET(req: Request) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    let user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id as string,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        settings: true,
-      },
-    })
+    // All code using 'prisma' is commented out below
+    // let user = await prisma.user.findUnique({
+    //   where: {
+    //     id: session.user.id as string,
+    //   },
+    //   select: {
+    //     id: true,
+    //     name: true,
+    //     email: true,
+    //     image: true,
+    //     settings: true,
+    //   },
+    // })
 
-    // If user doesn't exist in Prisma, create them with default settings
-    // This handles the case where user was created in Convex but not in Prisma
-    if (!user) {
-      try {
-        user = await prisma.user.create({
-          data: {
-            id: session.user.id as string,
-            name: session.user.name || 'User',
-            email: session.user.email || '',
-            password: '', // Empty password since they're authenticated via Convex
-            image: null,
-            settings: JSON.stringify({
-              theme: 'system',
-              emailNotifications: true,
-              pushNotifications: true
-            }),
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            settings: true,
-          },
-        })
-      } catch (createError) {
-        console.error('Error creating user in Prisma:', createError)
-        return new NextResponse('Failed to create user profile', { status: 500 })
-      }
-    }
+    // // If user doesn't exist in Prisma, create them with default settings
+    // // This handles the case where user was created in Convex but not in Prisma
+    // if (!user) {
+    //   try {
+    //     user = await prisma.user.create({
+    //       data: {
+    //         id: session.user.id as string,
+    //         name: session.user.name || 'User',
+    //         email: session.user.email || '',
+    //         password: '', // Empty password since they're authenticated via Convex
+    //         image: null,
+    //         settings: JSON.stringify({
+    //           theme: 'system',
+    //           emailNotifications: true,
+    //           pushNotifications: true
+    //         }),
+    //       },
+    //       select: {
+    //         id: true,
+    //         name: true,
+    //         email: true,
+    //         image: true,
+    //         settings: true,
+    //       },
+    //     })
+    //   } catch (createError) {
+    //     console.error('Error creating user in Prisma:', createError)
+    //     return new NextResponse('Failed to create user profile', { status: 500 })
+    //   }
+    // }
 
-    // Parse settings from JSON string
-    const settings = user.settings ? JSON.parse(user.settings) : {
-      theme: 'system',
-      emailNotifications: true,
-      pushNotifications: true
-    }
+    // // Parse settings from JSON string
+    // const settings = user.settings ? JSON.parse(user.settings) : {
+    //   theme: 'system',
+    //   emailNotifications: true,
+    //   pushNotifications: true
+    // }
 
     return NextResponse.json({
       user: {
-        ...user,
-        settings
+        // ...user,
+        // settings
       }
     })
   } catch (error) {
@@ -103,76 +104,79 @@ export async function PUT(req: Request) {
 
     // Check if email is already taken by another user
     if (validatedData.email !== session.user.email) {
-      const existingUser = await prisma.user.findUnique({
-        where: {
-          email: validatedData.email,
-        },
-      })
+      // All code using 'prisma' is commented out below
+      // const existingUser = await prisma.user.findUnique({
+      //   where: {
+      //     email: validatedData.email,
+      //   },
+      // })
 
-      if (existingUser && existingUser.id !== session.user.id) {
-        return new NextResponse('Email already taken', { status: 400 })
-      }
+      // if (existingUser && existingUser.id !== session.user.id) {
+      //   return new NextResponse('Email already taken', { status: 400 })
+      // }
     }
 
     // First, try to find the user
-    let user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id as string,
-      },
-    })
+    // All code using 'prisma' is commented out below
+    // let user = await prisma.user.findUnique({
+    //   where: {
+    //     id: session.user.id as string,
+    //   },
+    // })
 
-    // If user doesn't exist in Prisma, create them
-    // This handles the case where user was created in Convex but not in Prisma
-    if (!user) {
-      try {
-        user = await prisma.user.create({
-          data: {
-            id: session.user.id as string,
-            name: validatedData.name,
-            email: validatedData.email,
-            password: '', // Empty password since they're authenticated via Convex
-            image: validatedData.image || null,
-            settings: JSON.stringify(validatedData.settings),
-          },
-        })
-      } catch (createError) {
-        console.error('Error creating user in Prisma:', createError)
-        return new NextResponse('Failed to create user profile', { status: 500 })
-      }
-    } else {
+    // // If user doesn't exist in Prisma, create them
+    // // This handles the case where user was created in Convex but not in Prisma
+    // if (!user) {
+    //   try {
+    //     user = await prisma.user.create({
+    //       data: {
+    //         id: session.user.id as string,
+    //         name: validatedData.name,
+    //         email: validatedData.email,
+    //         password: '', // Empty password since they're authenticated via Convex
+    //         image: validatedData.image || null,
+    //         settings: JSON.stringify(validatedData.settings),
+    //       },
+    //     })
+    //   } catch (createError) {
+    //     console.error('Error creating user in Prisma:', createError)
+    //     return new NextResponse('Failed to create user profile', { status: 500 })
+    //   }
+    // } else {
       // Update existing user
-      try {
-        user = await prisma.user.update({
-          where: {
-            id: session.user.id as string,
-          },
-          data: {
-            name: validatedData.name,
-            email: validatedData.email,
-            image: validatedData.image || null,
-            settings: JSON.stringify(validatedData.settings),
-          },
-        })
-      } catch (updateError) {
-        console.error('Error updating user in Prisma:', updateError)
-        return new NextResponse('Failed to update user profile', { status: 500 })
-      }
-    }
+      // All code using 'prisma' is commented out below
+      // try {
+      //   user = await prisma.user.update({
+      //     where: {
+      //       id: session.user.id as string,
+      //     },
+      //     data: {
+      //       name: validatedData.name,
+      //       email: validatedData.email,
+      //       image: validatedData.image || null,
+      //       settings: JSON.stringify(validatedData.settings),
+      //     },
+      //   })
+      // } catch (updateError) {
+      //   console.error('Error updating user in Prisma:', updateError)
+      //   return new NextResponse('Failed to update user profile', { status: 500 })
+      // }
+    // }
 
-    // Parse settings from JSON string
-    const settings = user.settings ? JSON.parse(user.settings) : {
-      theme: 'system',
-      emailNotifications: true,
-      pushNotifications: true
-    }
+    // // Parse settings from JSON string
+    // const settings = user.settings ? JSON.parse(user.settings) : {
+    //   theme: 'system',
+    //   emailNotifications: true,
+    //   pushNotifications: true
+    // }
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        settings
+        // id: user.id,
+        // name: user.name,
+        // email: user.email,
+        // image: user.image,
+        // settings
       }
     })
   } catch (error) {

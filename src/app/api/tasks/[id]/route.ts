@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
 import * as z from 'zod'
 
 const taskSchema = z.object({
@@ -35,24 +35,18 @@ export async function PATCH(
     if (isSimpleStatusUpdate) {
       // Skip validation queries for simple status updates to improve performance
       try {
-        const task = await prisma.task.update({
-          where: { 
-            id: params.id,
-            userId: session.user.id as string // Security check in the where clause
-          },
-          data: {
-            status: validatedData.status
-          },
-          include: {
-            project: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        })
-        return NextResponse.json(task)
+        // This part of the code needs to be refactored to use Convex
+        // For now, it will fall back to full validation if fast path fails
+        console.warn('Fast path for simple status update is not fully implemented with Convex.')
+        // Example of how it would look with Convex (assuming a similar structure)
+        // const task = await convexClient.tasks.update({
+        //   id: params.id,
+        //   userId: session.user.id,
+        //   data: {
+        //     status: validatedData.status
+        //   }
+        // })
+        // return NextResponse.json(task)
       } catch (error) {
         // If update fails (task not found or unauthorized), fall back to full validation
         console.warn('Fast path failed, falling back to full validation:', error)
@@ -60,48 +54,53 @@ export async function PATCH(
     }
 
     // Full validation path for complex updates or when fast path fails
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: params.id,
-        userId: session.user.id as string
-      }
-    })
+    // This part of the code needs to be refactored to use Convex
+    // For now, it will fall back to full validation if fast path fails
+    console.warn('Full validation for complex updates is not fully implemented with Convex.')
+    // Example of how it would look with Convex (assuming a similar structure)
+    // const existingTask = await convexClient.tasks.findFirst({
+    //   where: {
+    //     id: params.id,
+    //     userId: session.user.id
+    //   }
+    // })
 
-    if (!existingTask) {
-      return NextResponse.json({ error: 'Task not found or unauthorized' }, { status: 404 })
-    }
+    // if (!existingTask) {
+    //   return NextResponse.json({ error: 'Task not found or unauthorized' }, { status: 404 })
+    // }
 
     // Validate project if projectId is provided
-    if (validatedData.projectId) {
-      const project = await prisma.project.findFirst({
-        where: {
-          id: validatedData.projectId,
-          userId: session.user.id as string
-        }
-      })
+    // This part of the code needs to be refactored to use Convex
+    // For now, it will fall back to full validation if fast path fails
+    console.warn('Project validation is not fully implemented with Convex.')
+    // Example of how it would look with Convex (assuming a similar structure)
+    // if (validatedData.projectId) {
+    //   const project = await convexClient.projects.findFirst({
+    //     where: {
+    //       id: validatedData.projectId,
+    //       userId: session.user.id
+    //     }
+    //   })
 
-      if (!project) {
-        return NextResponse.json({ error: 'Project not found or unauthorized' }, { status: 404 })
-      }
-    }
+    //   if (!project) {
+    //     return NextResponse.json({ error: 'Project not found or unauthorized' }, { status: 404 })
+    //   }
+    // }
 
-    const task = await prisma.task.update({
-      where: { id: params.id },
-      data: {
-        ...validatedData,
-        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    })
+    // This part of the code needs to be refactored to use Convex
+    // For now, it will fall back to full validation if fast path fails
+    console.warn('Task update is not fully implemented with Convex.')
+    // Example of how it would look with Convex (assuming a similar structure)
+    // const task = await convexClient.tasks.update({
+    //   where: { id: params.id },
+    //   data: {
+    //     ...validatedData,
+    //     dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
+    //   }
+    // })
 
-    return NextResponse.json(task)
+    // return NextResponse.json(task)
+    return NextResponse.json({ message: 'Task update is not fully implemented with Convex.' }, { status: 501 })
   } catch (error) {
     console.error('Error updating task:', error)
     if (error instanceof z.ZodError) {
@@ -123,22 +122,31 @@ export async function DELETE(
     }
 
     // Verify the task exists and belongs to the user
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: params.id,
-        userId: session.user.id as string
-      }
-    })
+    // This part of the code needs to be refactored to use Convex
+    // For now, it will fall back to full validation if fast path fails
+    console.warn('Task deletion is not fully implemented with Convex.')
+    // Example of how it would look with Convex (assuming a similar structure)
+    // const existingTask = await convexClient.tasks.findFirst({
+    //   where: {
+    //     id: params.id,
+    //     userId: session.user.id
+    //   }
+    // })
 
-    if (!existingTask) {
-      return NextResponse.json({ error: 'Task not found or unauthorized' }, { status: 404 })
-    }
+    // if (!existingTask) {
+    //   return NextResponse.json({ error: 'Task not found or unauthorized' }, { status: 404 })
+    // }
 
-    await prisma.task.delete({
-      where: { id: params.id }
-    })
+    // This part of the code needs to be refactored to use Convex
+    // For now, it will fall back to full validation if fast path fails
+    console.warn('Task deletion is not fully implemented with Convex.')
+    // Example of how it would look with Convex (assuming a similar structure)
+    // await convexClient.tasks.delete({
+    //   where: { id: params.id }
+    // })
 
-    return NextResponse.json({ message: 'Task deleted successfully' })
+    // return NextResponse.json({ message: 'Task deleted successfully' })
+    return NextResponse.json({ message: 'Task deletion is not fully implemented with Convex.' }, { status: 501 })
   } catch (error) {
     console.error('Error deleting task:', error)
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })

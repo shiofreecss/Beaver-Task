@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
@@ -16,16 +16,18 @@ interface NotePreviewModalProps {
 
 export function NotePreviewModal({ note, isOpen, onClose, onEdit }: NotePreviewModalProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editedTitle, setEditedTitle] = useState(note?.title || '')
-  const [editedContent, setEditedContent] = useState(note?.content || '')
-  const [editedTags, setEditedTags] = useState(note?.tags?.join(', ') || '')
+  const [editedTitle, setEditedTitle] = useState('')
+  const [editedContent, setEditedContent] = useState('')
+  const [editedTags, setEditedTags] = useState('')
 
-  // Reset form when note changes
-  if (note?.id !== undefined && (editedTitle !== note.title || editedContent !== note.content || editedTags !== note.tags.join(', '))) {
-    setEditedTitle(note.title)
-    setEditedContent(note.content)
-    setEditedTags(note.tags.join(', '))
-  }
+  // Reset form when note changes using useEffect
+  useEffect(() => {
+    if (note && !isEditing) {
+      setEditedTitle(note.title)
+      setEditedContent(note.content)
+      setEditedTags(note.tags.join(', '))
+    }
+  }, [note?.id, isEditing])
 
   const handleSave = () => {
     onEdit({
@@ -41,7 +43,7 @@ export function NotePreviewModal({ note, isOpen, onClose, onEdit }: NotePreviewM
       setIsEditing(false)
       onClose()
     }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent key={note?.id} className="max-w-2xl">
         <DialogHeader>
           <div className="flex items-center justify-between">
             {isEditing ? (
@@ -50,6 +52,7 @@ export function NotePreviewModal({ note, isOpen, onClose, onEdit }: NotePreviewM
                 onChange={(e) => setEditedTitle(e.target.value)}
                 className="text-xl font-semibold"
                 placeholder="Note title"
+                autoFocus
               />
             ) : (
               <DialogTitle className="text-xl">{note?.title}</DialogTitle>
@@ -57,7 +60,13 @@ export function NotePreviewModal({ note, isOpen, onClose, onEdit }: NotePreviewM
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+              onClick={() => {
+                if (isEditing) {
+                  handleSave()
+                } else {
+                  setIsEditing(true)
+                }
+              }}
             >
               <Pencil className="h-4 w-4" />
             </Button>

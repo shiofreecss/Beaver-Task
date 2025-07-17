@@ -6,6 +6,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.string(),
     password: v.string(),
+    role: v.optional(v.string()), // ADMIN, MANAGER, MEMBER
     emailVerified: v.optional(v.number()),
     image: v.optional(v.string()),
     settings: v.optional(v.string()),
@@ -114,12 +115,14 @@ export default defineSchema({
     content: v.string(),
     tags: v.string(),
     projectId: v.optional(v.id("projects")),
+    taskId: v.optional(v.id("tasks")),
     userId: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_projectId", ["projectId"]),
+    .index("by_projectId", ["projectId"])
+    .index("by_taskId", ["taskId"]),
 
   habits: defineTable({
     name: v.string(),
@@ -127,6 +130,8 @@ export default defineSchema({
     frequency: v.string(),
     target: v.number(),
     color: v.optional(v.string()),
+    customDays: v.optional(v.array(v.number())),
+    customPeriod: v.optional(v.string()),
     userId: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -152,10 +157,12 @@ export default defineSchema({
     startTime: v.optional(v.number()),
     endTime: v.optional(v.number()),
     taskId: v.optional(v.id("tasks")),
+    projectId: v.optional(v.id("projects")),
     userId: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_taskId", ["taskId"]),
+    .index("by_taskId", ["taskId"])
+    .index("by_projectId", ["projectId"]),
 }); 

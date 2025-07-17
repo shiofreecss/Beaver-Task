@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
 
@@ -16,6 +16,17 @@ const taskSchema = z.object({
   parentId: z.string().optional().nullable(),
 })
 
+const taskUpdateSchema = z.object({
+  title: z.string().min(1, 'Title is required').optional(),
+  description: z.string().optional(),
+  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']).optional(),
+  priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
+  severity: z.enum(['S0', 'S1', 'S2', 'S3']).optional(),
+  dueDate: z.string().optional().nullable(),
+  projectId: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable(),
+})
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -24,7 +35,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tasks = await convex.query(api.tasks.getUserTasks, {
+    const tasks = await convexHttp.query(api.tasks.getUserTasks, {
       userId: session.user.id as any
     })
 
@@ -43,16 +54,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Ensure user exists in Convex database
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
+      id: session.user.id,
+      name: session.user.name || 'Unknown User',
+      email: session.user.email || '',
+    })
+
     const body = await request.json()
     const validatedData = taskSchema.parse(body)
 
-    const task = await convex.mutation(api.tasks.createTask, {
-      ...validatedData,
-      dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
-      projectId: validatedData.projectId as any,
-      parentId: validatedData.parentId as any,
-      userId: session.user.id as any
-    })
+    // Prepare clean data for Convex - omit null/empty values instead of sending them
+    const convexData: any = {
+      title: validatedData.title,
+      userId: convexUserId
+    }
+
+    // Only add fields that have actual values
+    if (validatedData.description !== undefined) convexData.description = validatedData.description
+    if (validatedData.status !== undefined) convexData.status = validatedData.status
+    if (validatedData.priority !== undefined) convexData.priority = validatedData.priority
+    if (validatedData.severity !== undefined) convexData.severity = validatedData.severity
+    if (validatedData.dueDate !== undefined && validatedData.dueDate !== null) {
+      convexData.dueDate = new Date(validatedData.dueDate).getTime()
+    }
+    if (validatedData.projectId !== undefined && validatedData.projectId !== null && validatedData.projectId !== '') {
+      convexData.projectId = validatedData.projectId as any
+    }
+    if (validatedData.parentId !== undefined && validatedData.parentId !== null && validatedData.parentId !== '') {
+      convexData.parentId = validatedData.parentId as any
+    }
+
+    const task = await convexHttp.mutation(api.tasks.createTask, convexData)
 
     return NextResponse.json(task)
   } catch (error) {
@@ -73,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -86,16 +119,31 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
     }
 
-    const validatedData = taskSchema.parse(updateData)
+    const validatedData = taskUpdateSchema.parse(updateData)
 
-    const task = await convex.mutation(api.tasks.updateTask, {
+    // Prepare clean data for Convex - omit null/empty values instead of sending them
+    const convexData: any = {
       taskId: id as any,
-      ...validatedData,
-      dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
-      projectId: validatedData.projectId as any,
-      parentId: validatedData.parentId as any,
       userId: convexUserId
-    })
+    }
+
+    // Only add fields that have actual values
+    if (validatedData.title !== undefined) convexData.title = validatedData.title
+    if (validatedData.description !== undefined) convexData.description = validatedData.description
+    if (validatedData.status !== undefined) convexData.status = validatedData.status
+    if (validatedData.priority !== undefined) convexData.priority = validatedData.priority
+    if (validatedData.severity !== undefined) convexData.severity = validatedData.severity
+    if (validatedData.dueDate !== undefined && validatedData.dueDate !== null) {
+      convexData.dueDate = new Date(validatedData.dueDate).getTime()
+    }
+    if (validatedData.projectId !== undefined && validatedData.projectId !== null && validatedData.projectId !== '') {
+      convexData.projectId = validatedData.projectId as any
+    }
+    if (validatedData.parentId !== undefined && validatedData.parentId !== null && validatedData.parentId !== '') {
+      convexData.parentId = validatedData.parentId as any
+    }
+
+    const task = await convexHttp.mutation(api.tasks.updateTask, convexData)
 
     return NextResponse.json(task)
   } catch (error) {
@@ -116,7 +164,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -129,14 +177,39 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
     }
 
-    await convex.mutation(api.tasks.deleteTask, {
-      taskId: id as any,
-      userId: convexUserId
-    })
+    // Validate that the ID looks like a valid Convex ID
+    if (!id.match(/^[a-zA-Z0-9_-]+$/)) {
+      return NextResponse.json({ error: 'Invalid task ID format' }, { status: 400 })
+    }
 
-    return new NextResponse(null, { status: 204 })
+    try {
+      await convexHttp.mutation(api.tasks.deleteTask, {
+        taskId: id as any,
+        userId: convexUserId
+      })
+
+      return new NextResponse(null, { status: 204 })
+    } catch (convexError: any) {
+      console.error('Convex error during task deletion:', convexError)
+      
+      // Handle specific Convex errors
+      if (convexError.data === 'Task not found or unauthorized') {
+        return NextResponse.json({ 
+          error: 'Task not found or you do not have permission to delete it' 
+        }, { status: 404 })
+      }
+      
+      // Re-throw other Convex errors
+      throw convexError
+    }
   } catch (error) {
     console.error('Error deleting task:', error)
+    
+    // Return more specific error messages
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })
   }
 } 

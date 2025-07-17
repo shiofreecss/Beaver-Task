@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
 import { Id } from '../../../../convex/_generated/dataModel'
@@ -49,7 +49,7 @@ async function getOrCreateConvexUserId(sessionUserId: string, userName: string |
   }
 
   // If not in cache, query/create user
-  const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+  const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
     id: sessionUserId,
     name: userName || 'Unknown User',
     email: userEmail || '',
@@ -75,7 +75,7 @@ export async function GET() {
       session.user.email
     )
 
-    const organizations = await convex.query(api.organizations.getUserOrganizations, {
+    const organizations = await convexHttp.query(api.organizations.getUserOrganizations, {
       userId: convexUserId
     })
 
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = organizationSchema.parse(body)
 
-    const organization = await convex.mutation(api.organizations.createOrganization, {
+    const organization = await convexHttp.mutation(api.organizations.createOrganization, {
       ...validatedData,
       userId: convexUserId,
       department: validatedData.department,
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest) {
 
     const validatedData = organizationSchema.parse(updateData)
 
-    const organization = await convex.mutation(api.organizations.updateOrganization, {
+    const organization = await convexHttp.mutation(api.organizations.updateOrganization, {
       id: id,
       ...validatedData,
       userId: convexUserId,
@@ -189,8 +189,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 })
     }
 
-    await convex.mutation(api.organizations.deleteOrganization, { 
-      id: id,
+    await convexHttp.mutation(api.organizations.deleteOrganization, { 
+      id: id as Id<'organizations'>,
       userId: convexUserId
     })
 

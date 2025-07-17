@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
 
@@ -9,6 +9,7 @@ const pomodoroSessionSchema = z.object({
   duration: z.number().min(1, 'Duration must be at least 1 minute'),
   type: z.enum(['FOCUS', 'SHORT_BREAK', 'LONG_BREAK']).default('FOCUS'),
   taskId: z.string().optional(),
+  projectId: z.string().optional(),
 })
 
 export async function GET() {
@@ -20,13 +21,13 @@ export async function GET() {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
     })
 
-    const sessions = await convex.query(api.pomodoro.getUserPomodoroSessions, {
+    const sessions = await convexHttp.query(api.pomodoro.getUserPomodoroSessions, {
       userId: convexUserId
     })
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -55,10 +56,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = pomodoroSessionSchema.parse(body)
 
-    const pomodoroSession = await convex.mutation(api.pomodoro.createPomodoroSession, {
-      ...validatedData,
+    // Prepare data for Convex - handle taskId and projectId conversion
+    const convexData: any = {
+      duration: validatedData.duration,
+      type: validatedData.type,
       userId: convexUserId
-    })
+    }
+
+    // Only add taskId if it's provided and not empty
+    if (validatedData.taskId && validatedData.taskId.trim() !== '') {
+      convexData.taskId = validatedData.taskId as any // Cast to Convex ID type
+    }
+
+    // Only add projectId if it's provided and not empty
+    if (validatedData.projectId && validatedData.projectId.trim() !== '') {
+      convexData.projectId = validatedData.projectId as any // Cast to Convex ID type
+    }
+
+    const pomodoroSession = await convexHttp.mutation(api.pomodoro.createPomodoroSession, convexData)
 
     return NextResponse.json(pomodoroSession)
   } catch (error) {
@@ -79,7 +94,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -92,7 +107,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
 
-    const pomodoroSession = await convex.mutation(api.pomodoro.updatePomodoroSession, {
+    const pomodoroSession = await convexHttp.mutation(api.pomodoro.updatePomodoroSession, {
       sessionId: id as any,
       userId: convexUserId,
       completed,
@@ -115,7 +130,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -128,7 +143,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
 
-    await convex.mutation(api.pomodoro.deletePomodoroSession, {
+    await convexHttp.mutation(api.pomodoro.deletePomodoroSession, {
       sessionId: id as any,
       userId: convexUserId
     })

@@ -19,11 +19,18 @@ interface Project {
   name: string
 }
 
+interface Task {
+  id: string
+  title: string
+  projectId?: string
+}
+
 interface NoteFormData {
   title: string
   content: string
   tags: string
   projectId: string
+  taskId: string
 }
 
 interface CreateNoteModalProps {
@@ -31,21 +38,29 @@ interface CreateNoteModalProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (data: NoteFormData) => void
   projects: Project[]
+  tasks: Task[]
   initialData?: {
     title: string
     content: string
     tags: string
     projectId?: string
+    taskId?: string
   }
 }
 
-export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], initialData }: CreateNoteModalProps) {
+export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], tasks = [], initialData }: CreateNoteModalProps) {
   const [formData, setFormData] = useState<NoteFormData>({
     title: '',
     content: '',
     tags: '',
-    projectId: 'none'
+    projectId: 'none',
+    taskId: 'none'
   })
+
+  // Filter tasks by selected project
+  const filteredTasks = formData.projectId !== 'none' 
+    ? tasks.filter(task => task.projectId === formData.projectId)
+    : tasks
 
   useEffect(() => {
     if (initialData) {
@@ -53,17 +68,26 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
         title: initialData.title,
         content: initialData.content,
         tags: initialData.tags,
-        projectId: initialData.projectId || 'none'
+        projectId: initialData.projectId || 'none',
+        taskId: initialData.taskId || 'none'
       })
     } else {
       setFormData({
         title: '',
         content: '',
         tags: '',
-        projectId: 'none'
+        projectId: 'none',
+        taskId: 'none'
       })
     }
   }, [initialData])
+
+  // Reset task selection when project changes
+  useEffect(() => {
+    if (formData.projectId === 'none') {
+      setFormData(prev => ({ ...prev, taskId: 'none' }))
+    }
+  }, [formData.projectId])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +98,8 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
           title: '',
           content: '',
           tags: '',
-          projectId: 'none'
+          projectId: 'none',
+          taskId: 'none'
         })
       }
     }
@@ -130,6 +155,25 @@ export function CreateNoteModal({ open, onOpenChange, onSubmit, projects = [], i
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {tasks.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="task">Task</Label>
+              <Select value={formData.taskId} onValueChange={(value) => setFormData(prev => ({ ...prev, taskId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select task" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Task</SelectItem>
+                  {filteredTasks.map((task) => (
+                    <SelectItem key={task.id} value={task.id}>
+                      {task.title}
                     </SelectItem>
                   ))}
                 </SelectContent>

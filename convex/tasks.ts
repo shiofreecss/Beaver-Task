@@ -126,8 +126,16 @@ export const updateTask = mutation({
       }
     }
 
+    // Filter out undefined values
+    const filteredUpdates: any = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        filteredUpdates[key] = value;
+      }
+    });
+
     await ctx.db.patch(taskId, {
-      ...updates,
+      ...filteredUpdates,
       updatedAt: Date.now(),
     });
 
@@ -172,7 +180,7 @@ export const moveTask = mutation({
   args: {
     taskId: v.id("tasks"),
     userId: v.id("users"),
-    columnId: v.optional(v.string()),
+    columnId: v.string(),
   },
   handler: async (ctx, args) => {
     // Verify task exists and belongs to user
@@ -190,9 +198,7 @@ export const moveTask = mutation({
       'completed': 'COMPLETED'
     };
 
-    const status = args.columnId && columnIdToStatus[args.columnId] 
-      ? columnIdToStatus[args.columnId] 
-      : 'ACTIVE';
+    const status = columnIdToStatus[args.columnId] || 'ACTIVE';
 
     await ctx.db.patch(args.taskId, {
       status,

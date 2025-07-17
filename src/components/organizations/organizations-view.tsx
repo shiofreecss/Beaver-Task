@@ -711,8 +711,8 @@ export function OrganizationsView() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">
-          <p className="text-sm md:text-base">Loading organizations...</p>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : localOrganizations.length === 0 ? (
         <Card className="text-center py-8 md:py-12">

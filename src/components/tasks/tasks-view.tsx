@@ -874,8 +874,8 @@ export function TasksView({ projectId }: TasksViewProps) {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">
-          <p>Loading tasks...</p>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : filteredTasks.length === 0 ? (
         <Card className="text-center py-12">

@@ -211,25 +211,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           subtasks: existingTask?.subtasks || [] 
         })
 
-        // Rebuild the hierarchy
-        state.tasks.forEach((task) => {
-          if (task.parentId && tasksMap.has(task.parentId)) {
-            const parent = tasksMap.get(task.parentId)!
-            const childTask = tasksMap.get(task.id) || task
-            if (!parent.subtasks) {
-              parent.subtasks = []
-            }
-            // Only add if not already in subtasks array
-            if (!parent.subtasks.some(st => st.id === childTask.id)) {
-              parent.subtasks.push(childTask)
-            }
-          }
-        })
-
-        // Return only root tasks (those without parents)
-        return {
-          tasks: Array.from(tasksMap.values()).filter(t => !t.parentId)
-        }
+        return { tasks: Array.from(tasksMap.values()) }
       })
     } catch (error) {
       console.error('Error updating task:', error)
@@ -281,7 +263,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
       })
       
-      set({ tasks: Array.from(tasksMap.values()) })
+      // Return only root tasks (those without parents)
+      const rootTasks = Array.from(tasksMap.values()).filter(task => !task.parentId)
+      set({ tasks: rootTasks })
     } catch (error) {
       console.error('Error fetching tasks:', error)
       throw error

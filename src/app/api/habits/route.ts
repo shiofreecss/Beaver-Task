@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
 import * as z from 'zod'
 
 const habitSchema = z.object({
@@ -80,20 +80,22 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const habits = await prisma.habit.findMany({
-      where: {
-        userId: session.user.id as string
-      },
-      include: {
-        entries: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // TODO: Refactor this endpoint to use Convex instead of Prisma.
+    // const habits = await prisma.habit.findMany({
+    //   where: {
+    //     userId: session.user.id as string
+    //   },
+    //   include: {
+    //     entries: true
+    //   },
+    //   orderBy: {
+    //     createdAt: 'desc'
+    //   }
+    // })
 
-    const transformedHabits = habits.map(habit => transformHabit(habit, habit.entries))
-    return NextResponse.json(transformedHabits)
+    // const transformedHabits = habits.map(habit => transformHabit(habit, habit.entries))
+    return NextResponse.json([]) // Placeholder for Convex data
   } catch (error) {
     console.error('Error fetching habits:', error)
     return new NextResponse('Internal Error', { status: 500 })
@@ -110,17 +112,20 @@ export async function POST(req: Request) {
     const body = await req.json()
     const validatedData = habitSchema.parse(body)
 
-    const habit = await prisma.habit.create({
-      data: {
-        ...validatedData,
-        userId: session.user.id as string
-      },
-      include: {
-        entries: true
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // TODO: Refactor this endpoint to use Convex instead of Prisma.
+    // const habit = await prisma.habit.create({
+    //   data: {
+    //     ...validatedData,
+    //     userId: session.user.id as string
+    //   },
+    //   include: {
+    //     entries: true
+    //   }
+    // })
 
-    return NextResponse.json(transformHabit(habit))
+    // return NextResponse.json(transformHabit(habit))
+    return new NextResponse('Not implemented', { status: 501 }) // Placeholder for Convex data
   } catch (error) {
     console.error('Error creating habit:', error)
     if (error instanceof z.ZodError) {
@@ -145,73 +150,79 @@ export async function PUT(req: Request) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      const habit = await prisma.habit.findUnique({
-        where: {
-          id,
-          userId: session.user.id as string
-        },
-        include: {
-          entries: true
-        }
-      })
+      // All code using 'prisma' is commented out below
+      // TODO: Refactor this endpoint to use Convex instead of Prisma.
+      // const habit = await prisma.habit.findUnique({
+      //   where: {
+      //     id,
+      //     userId: session.user.id as string
+      //   },
+      //   include: {
+      //     entries: true
+      //   }
+      // })
 
-      if (!habit) {
-        return new NextResponse('Habit not found', { status: 404 })
-      }
+      // if (!habit) {
+      //   return new NextResponse('Habit not found', { status: 404 })
+      // }
 
-      const existingEntry = await prisma.habitEntry.findFirst({
-        where: {
-          habitId: id,
-                      userId: session.user.id as string,
-          date: {
-            gte: today,
-            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
-          }
-        }
-      })
+      // const existingEntry = await prisma.habitEntry.findFirst({
+      //   where: {
+      //     habitId: id,
+      //     userId: session.user.id as string,
+      //     date: {
+      //       gte: today,
+      //       lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+      //     }
+      //   }
+      // })
 
-      if (existingEntry) {
-        await prisma.habitEntry.update({
-          where: { id: existingEntry.id },
-          data: { completed }
-        })
-      } else if (completed) {
-        await prisma.habitEntry.create({
-          data: {
-            habitId: id,
-            userId: session.user.id as string,
-            completed,
-            date: today
-          }
-        })
-      }
+      // if (existingEntry) {
+      //   await prisma.habitEntry.update({
+      //     where: { id: existingEntry.id },
+      //     data: { completed }
+      //   })
+      // } else if (completed) {
+      //   await prisma.habitEntry.create({
+      //     data: {
+      //       habitId: id,
+      //       userId: session.user.id as string,
+      //       completed,
+      //       date: today
+      //     }
+      //   })
+      // }
 
-      const updatedHabit = await prisma.habit.findUnique({
-        where: { id },
-        include: {
-          entries: true
-        }
-      })
+      // const updatedHabit = await prisma.habit.findUnique({
+      //   where: { id },
+      //   include: {
+      //     entries: true
+      //   }
+      // })
 
-      return NextResponse.json(transformHabit(updatedHabit, updatedHabit?.entries))
+      // return NextResponse.json(transformHabit(updatedHabit, updatedHabit?.entries))
+      return new NextResponse('Not implemented', { status: 501 }) // Placeholder for Convex data
     }
 
     // Handle habit update
     const { id, ...updateData } = body
     const validatedData = habitSchema.parse(updateData)
 
-    const habit = await prisma.habit.update({
-              where: {
-          id,
-          userId: session.user.id as string
-        },
-      data: validatedData,
-      include: {
-        entries: true
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // TODO: Refactor this endpoint to use Convex instead of Prisma.
+    // const habit = await prisma.habit.update({
+    //   where: {
+    //     id,
+    //     userId: session.user.id as string
+    //   },
+    //   data: validatedData,
+    //   include: {
+    //     entries: true
+    //   }
+    // })
 
-    return NextResponse.json(transformHabit(habit, habit.entries))
+    // return NextResponse.json(transformHabit(habit, habit.entries))
+    return new NextResponse('Not implemented', { status: 501 }) // Placeholder for Convex data
   } catch (error) {
     console.error('Error updating habit:', error)
     if (error instanceof z.ZodError) {
@@ -235,14 +246,17 @@ export async function DELETE(req: Request) {
       return new NextResponse('Habit ID is required', { status: 400 })
     }
 
-    await prisma.habit.delete({
-      where: {
-        id,
-        userId: session.user.id as string
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // TODO: Refactor this endpoint to use Convex instead of Prisma.
+    // await prisma.habit.delete({
+    //   where: {
+    //     id,
+    //     userId: session.user.id as string
+    //   }
+    // })
 
-    return new NextResponse(null, { status: 204 })
+    // return new NextResponse(null, { status: 204 })
+    return new NextResponse('Not implemented', { status: 501 }) // Placeholder for Convex data
   } catch (error) {
     console.error('Error deleting habit:', error)
     return new NextResponse('Internal Error', { status: 500 })

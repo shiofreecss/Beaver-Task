@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../../convex/_generated/api'
 
 export async function PATCH(request: NextRequest) {
@@ -13,7 +13,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -22,15 +22,11 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { taskId, columnId } = body
 
-    if (!taskId) {
-      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
+    if (!taskId || !columnId) {
+      return NextResponse.json({ error: 'Task ID and Column ID are required' }, { status: 400 })
     }
 
-    if (!columnId) {
-      return NextResponse.json({ error: 'Column ID is required' }, { status: 400 })
-    }
-
-    const task = await convex.mutation(api.tasks.moveTask, {
+    const task = await convexHttp.mutation(api.tasks.moveTask, {
       taskId: taskId as any,
       userId: convexUserId,
       columnId

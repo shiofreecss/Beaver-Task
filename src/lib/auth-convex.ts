@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcrypt"
-import convex from "@/lib/convex"
+import { convexHttp } from "@/lib/convex"
 import { api } from "../../convex/_generated/api"
 
 type UserWithPassword = {
@@ -50,7 +50,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await convex.query(api.users.getUserByEmail, {
+          // Use Convex to get user
+          const user = await convexHttp.query(api.users.getUserByEmail, {
             email: credentials.email
           }) as UserWithPassword | null
 

@@ -26,6 +26,7 @@ export const createPomodoroSession = mutation({
     duration: v.number(),
     type: v.optional(v.string()),
     taskId: v.optional(v.id("tasks")),
+    projectId: v.optional(v.id("projects")),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -36,6 +37,7 @@ export const createPomodoroSession = mutation({
       completed: false,
       startTime: now,
       taskId: args.taskId,
+      projectId: args.projectId,
       userId: args.userId,
       createdAt: now,
       updatedAt: now,
@@ -43,13 +45,17 @@ export const createPomodoroSession = mutation({
 
     // Return the complete session object
     const session = await ctx.db.get(sessionId);
+    if (!session) {
+      throw new Error("Failed to create session");
+    }
+    
     return {
       ...session,
-      id: session?._id,
-      startTime: session?.startTime ? new Date(session.startTime).toISOString() : null,
-      endTime: session?.endTime ? new Date(session.endTime).toISOString() : null,
-      createdAt: new Date(session?.createdAt || now).toISOString(),
-      updatedAt: new Date(session?.updatedAt || now).toISOString(),
+      id: session._id,
+      startTime: session.startTime ? new Date(session.startTime).toISOString() : null,
+      endTime: session.endTime ? new Date(session.endTime).toISOString() : null,
+      createdAt: new Date(session.createdAt).toISOString(),
+      updatedAt: new Date(session.updatedAt).toISOString(),
     };
   },
 });
@@ -77,13 +83,17 @@ export const updatePomodoroSession = mutation({
 
     // Return the complete updated session object
     const updatedSession = await ctx.db.get(sessionId);
+    if (!updatedSession) {
+      throw new Error("Failed to update session");
+    }
+    
     return {
       ...updatedSession,
-      id: updatedSession?._id,
-      startTime: updatedSession?.startTime ? new Date(updatedSession.startTime).toISOString() : null,
-      endTime: updatedSession?.endTime ? new Date(updatedSession.endTime).toISOString() : null,
-      createdAt: new Date(updatedSession?.createdAt || Date.now()).toISOString(),
-      updatedAt: new Date(updatedSession?.updatedAt || Date.now()).toISOString(),
+      id: updatedSession._id,
+      startTime: updatedSession.startTime ? new Date(updatedSession.startTime).toISOString() : null,
+      endTime: updatedSession.endTime ? new Date(updatedSession.endTime).toISOString() : null,
+      createdAt: new Date(updatedSession.createdAt).toISOString(),
+      updatedAt: new Date(updatedSession.updatedAt).toISOString(),
     };
   },
 });

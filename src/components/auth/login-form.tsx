@@ -56,8 +56,11 @@ export function LoginForm() {
           title: 'Success',
           description: 'Logged in successfully!',
         })
-        router.push('/')
-        router.refresh()
+        // Add a small delay to show the success toast before redirecting
+        setTimeout(() => {
+          router.push('/')
+          router.refresh()
+        }, 1000)
       }
     } catch (error) {
       console.error('Login exception:', error)

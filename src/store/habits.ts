@@ -7,6 +7,8 @@ interface Habit {
   frequency: string
   target: number
   color?: string
+  customDays?: number[]
+  customPeriod?: string
   streak: number
   completedToday: boolean
   weeklyProgress: boolean[]

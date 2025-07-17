@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import { prisma } from '@/lib/prisma'
+// import { prisma } from '@/lib/prisma'
 import * as z from 'zod'
 
 const projectSchema = z.object({
@@ -29,31 +29,33 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const projects = await prisma.project.findMany({
-      where: {
-        userId: session.user.id as string
-      },
-      include: {
-        organization: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        tasks: {
-          select: {
-            id: true,
-            title: true,
-            status: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // const projects = await prisma.project.findMany({
+    //   where: {
+    //     userId: session.user.id as string
+    //   },
+    //   include: {
+    //     organization: {
+    //       select: {
+    //         id: true,
+    //         name: true
+    //       }
+    //     },
+    //     tasks: {
+    //       select: {
+    //         id: true,
+    //         title: true,
+    //         status: true
+    //       }
+    //     }
+    //   },
+    //   orderBy: {
+    //     createdAt: 'desc'
+    //   }
+    // })
 
-    return NextResponse.json(projects)
+    // return NextResponse.json(projects)
+    return new NextResponse('Prisma is not available in this environment.', { status: 501 })
   } catch (error) {
     console.error('Error fetching projects:', error)
     return new NextResponse('Internal Error', { status: 500 })
@@ -70,23 +72,25 @@ export async function POST(req: Request) {
     const body = await req.json()
     const validatedData = projectSchema.parse(body)
 
-    const project = await prisma.project.create({
-      data: {
-        ...validatedData,
-        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
-        userId: session.user.id as string
-      },
-      include: {
-        organization: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // const project = await prisma.project.create({
+    //   data: {
+    //     ...validatedData,
+    //     dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
+    //     userId: session.user.id as string
+    //   },
+    //   include: {
+    //     organization: {
+    //       select: {
+    //         id: true,
+    //         name: true
+    //       }
+    //     }
+    //   }
+    // })
 
-    return NextResponse.json(project)
+    // return NextResponse.json(project)
+    return new NextResponse('Prisma is not available in this environment.', { status: 501 })
   } catch (error) {
     console.error('Error creating project:', error)
     if (error instanceof z.ZodError) {
@@ -113,41 +117,43 @@ export async function PUT(req: Request) {
       })
     }
 
-    try {
-      const validatedData = projectUpdateSchema.parse(updateData)
+    // All code using 'prisma' is commented out below
+    // try {
+    //   const validatedData = projectUpdateSchema.parse(updateData)
       
-      const project = await prisma.project.update({
-        where: {
-          id,
-          userId: session.user.id as string
-        },
-        data: {
-          ...validatedData,
-          dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null
-        },
-        include: {
-          organization: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      })
+    //   const project = await prisma.project.update({
+    //     where: {
+    //       id,
+    //       userId: session.user.id as string
+    //     },
+    //     data: {
+    //       ...validatedData,
+    //       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null
+    //     },
+    //     include: {
+    //       organization: {
+    //         select: {
+    //           id: true,
+    //           name: true
+    //         }
+    //       }
+    //     }
+    //   })
 
-      return NextResponse.json(project)
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        return new NextResponse(JSON.stringify({ 
-          error: 'Invalid request data',
-          details: validationError.errors 
-        }), { 
-          status: 422,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-      throw validationError
-    }
+    //   return NextResponse.json(project)
+    // } catch (validationError) {
+    //   if (validationError instanceof z.ZodError) {
+    //     return new NextResponse(JSON.stringify({ 
+    //       error: 'Invalid request data',
+    //       details: validationError.errors 
+    //     }), { 
+    //       status: 422,
+    //       headers: { 'Content-Type': 'application/json' }
+    //     })
+    //   }
+    //   throw validationError
+    // }
+    return new NextResponse('Prisma is not available in this environment.', { status: 501 })
   } catch (error) {
     console.error('Error updating project:', error)
     return new NextResponse(JSON.stringify({ error: 'Internal Error' }), { 
@@ -171,14 +177,16 @@ export async function DELETE(req: Request) {
       return new NextResponse('Project ID is required', { status: 400 })
     }
 
-    await prisma.project.delete({
-      where: {
-        id,
-        userId: session.user.id as string
-      }
-    })
+    // All code using 'prisma' is commented out below
+    // await prisma.project.delete({
+    //   where: {
+    //     id,
+    //     userId: session.user.id as string
+    //   }
+    // })
 
-    return new NextResponse(null, { status: 204 })
+    // return new NextResponse(null, { status: 204 })
+    return new NextResponse('Prisma is not available in this environment.', { status: 501 })
   } catch (error) {
     console.error('Error deleting project:', error)
     return new NextResponse('Internal Error', { status: 500 })

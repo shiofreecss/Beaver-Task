@@ -21,7 +21,7 @@ export const getUserHabits = query({
       })
     );
 
-    return habitsWithEntries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return habitsWithEntries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 });
 
@@ -32,6 +32,8 @@ export const createHabit = mutation({
     frequency: v.string(),
     target: v.number(),
     color: v.optional(v.string()),
+    customDays: v.optional(v.array(v.number())),
+    customPeriod: v.optional(v.string()),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -42,6 +44,8 @@ export const createHabit = mutation({
       frequency: args.frequency,
       target: args.target,
       color: args.color,
+      customDays: args.customDays,
+      customPeriod: args.customPeriod,
       userId: args.userId,
       createdAt: now,
       updatedAt: now,
@@ -110,6 +114,8 @@ export const updateHabit = mutation({
     frequency: v.string(),
     target: v.number(),
     color: v.optional(v.string()),
+    customDays: v.optional(v.array(v.number())),
+    customPeriod: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { habitId, userId, ...updates } = args;

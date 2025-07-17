@@ -9,13 +9,19 @@ export const getUserNotes = query({
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
-    // Get project info for each note
-    const notesWithProjects = await Promise.all(
+    // Get project and task info for each note
+    const notesWithDetails = await Promise.all(
       notes.map(async (note) => {
         let project = null;
         if (note.projectId) {
           const proj = await ctx.db.get(note.projectId);
           project = proj ? { id: proj._id, name: proj.name } : null;
+        }
+
+        let task = null;
+        if (note.taskId) {
+          const taskData = await ctx.db.get(note.taskId);
+          task = taskData ? { id: taskData._id, title: taskData.title } : null;
         }
 
         return {
@@ -25,12 +31,14 @@ export const getUserNotes = query({
           updatedAt: new Date(note.updatedAt).toISOString(),
           tags: note.tags.split(',').map(tag => tag.trim()).filter(Boolean),
           projectName: project?.name || null,
-          project
+          project,
+          taskName: task?.title || null,
+          task
         };
       })
     );
 
-    return notesWithProjects.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return notesWithDetails.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 });
 
@@ -40,6 +48,7 @@ export const createNote = mutation({
     content: v.string(),
     tags: v.string(),
     projectId: v.optional(v.id("projects")),
+    taskId: v.optional(v.id("tasks")),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -49,6 +58,7 @@ export const createNote = mutation({
       content: args.content,
       tags: args.tags,
       projectId: args.projectId,
+      taskId: args.taskId,
       userId: args.userId,
       createdAt: now,
       updatedAt: now,
@@ -64,6 +74,13 @@ export const createNote = mutation({
       project = proj ? { id: proj._id, name: proj.name } : null;
     }
 
+    // Get task info if exists
+    let task = null;
+    if (note.taskId) {
+      const taskData = await ctx.db.get(note.taskId);
+      task = taskData ? { id: taskData._id, title: taskData.title } : null;
+    }
+
     return {
       ...note,
       id: note._id,
@@ -71,7 +88,9 @@ export const createNote = mutation({
       updatedAt: new Date(note.updatedAt).toISOString(),
       tags: note.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       projectName: project?.name || null,
-      project
+      project,
+      taskName: task?.title || null,
+      task
     };
   },
 });
@@ -84,17 +103,36 @@ export const updateNote = mutation({
     content: v.string(),
     tags: v.string(),
     projectId: v.optional(v.id("projects")),
+    taskId: v.optional(v.id("tasks")),
   },
   handler: async (ctx, args) => {
+    console.log('Convex updateNote called with args:', args);
+    
     const { noteId, userId, ...updates } = args;
 
+    // Verify note exists and belongs to user
+    const existingNote = await ctx.db.get(noteId);
+    if (!existingNote) {
+      console.log('Note not found:', noteId);
+      throw new Error("Note not found");
+    }
+    
+    if (existingNote.userId !== userId) {
+      console.log('Note does not belong to user:', { noteUserId: existingNote.userId, userId });
+      throw new Error("Note does not belong to user");
+    }
+
+    console.log('Updating note with:', updates);
     await ctx.db.patch(noteId, {
       ...updates,
       updatedAt: Date.now(),
     });
 
     const updatedNote = await ctx.db.get(noteId);
-    if (!updatedNote) return null;
+    if (!updatedNote) {
+      console.log('Failed to get updated note');
+      return null;
+    }
 
     // Get project info if exists
     let project = null;
@@ -103,15 +141,27 @@ export const updateNote = mutation({
       project = proj ? { id: proj._id, name: proj.name } : null;
     }
 
-    return {
+    // Get task info if exists
+    let task = null;
+    if (updatedNote.taskId) {
+      const taskData = await ctx.db.get(updatedNote.taskId);
+      task = taskData ? { id: taskData._id, title: taskData.title } : null;
+    }
+
+    const result = {
       ...updatedNote,
       id: updatedNote._id,
       createdAt: new Date(updatedNote.createdAt).toISOString(),
       updatedAt: new Date(updatedNote.updatedAt).toISOString(),
       tags: updatedNote.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       projectName: project?.name || null,
-      project
+      project,
+      taskName: task?.title || null,
+      task
     };
+    
+    console.log('Note updated successfully:', result);
+    return result;
   },
 });
 

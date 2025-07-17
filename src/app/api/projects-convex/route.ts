@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-convex'
-import convex from '@/lib/convex'
+import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
+import { Id } from '../../../../convex/_generated/dataModel'
 
 const projectSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -49,7 +50,7 @@ async function getOrCreateConvexUserId(sessionUserId: string, userName: string |
   }
 
   // If not in cache, query/create user
-  const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+  const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
     id: sessionUserId,
     name: userName || 'Unknown User',
     email: userEmail || '',
@@ -75,8 +76,8 @@ export async function GET() {
       session.user.email
     )
 
-    const projects = await convex.query(api.projects.getUserProjects, {
-      userId: convexUserId
+    const projects = await convexHttp.query(api.projects.getUserProjects, {
+      userId: convexUserId as Id<'users'>
     })
 
     return NextResponse.json(projects)
@@ -104,11 +105,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = projectSchema.parse(body)
 
-    const project = await convex.mutation(api.projects.createProject, {
+    const project = await convexHttp.mutation(api.projects.createProject, {
       ...validatedData,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
       organizationId: validatedData.organizationId as any,
-      userId: convexUserId,
+      userId: convexUserId as Id<'users'>,
       website: validatedData.website,
       categories: validatedData.categories,
       documents: validatedData.documents
@@ -133,7 +134,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -147,7 +148,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
     }
 
-    const project = await convex.mutation(api.projects.updateProject, {
+    const project = await convexHttp.mutation(api.projects.updateProject, {
       projectId: id as any,
       ...validatedData,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
@@ -177,7 +178,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Ensure user exists in Convex database
-    const convexUserId = await convex.mutation(api.users.findOrCreateUser, {
+    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
       id: session.user.id,
       name: session.user.name || 'Unknown User',
       email: session.user.email || '',
@@ -193,7 +194,7 @@ export async function DELETE(request: NextRequest) {
 
     console.log('Deleting project:', { projectId, userId: convexUserId })
 
-    await convex.mutation(api.projects.deleteProject, {
+    await convexHttp.mutation(api.projects.deleteProject, {
       projectId: projectId as any,
       userId: convexUserId
     })
@@ -201,7 +202,7 @@ export async function DELETE(request: NextRequest) {
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     console.error('Error deleting project:', error)
-    if (error instanceof ConvexError) {
+    if (error instanceof Error && 'message' in error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
     return NextResponse.json({ 

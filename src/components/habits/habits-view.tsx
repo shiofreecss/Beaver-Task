@@ -31,6 +31,8 @@ interface Habit {
   frequency: string
   target: number
   color?: string
+  customDays?: number[]
+  customPeriod?: string
   completedToday: boolean
   streak: number
   completionRate: number
@@ -44,6 +46,8 @@ interface HabitFormData {
   frequency: string
   target: number
   color?: string
+  customDays?: number[]
+  customPeriod?: string
 }
 
 export function HabitsView() {
@@ -188,6 +192,29 @@ export function HabitsView() {
 
   const getDaysOfWeek = () => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  const getFrequencyDisplay = (habit: Habit) => {
+    if (habit.frequency === 'CUSTOM' && habit.customDays && habit.customDays.length > 0) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      const selectedDays = habit.customDays.map(day => dayNames[day]).join(', ')
+      const periodMap = {
+        'WEEKLY': 'every week',
+        'BIWEEKLY': 'every 2 weeks',
+        'MONTHLY': 'monthly',
+        'ANNUALLY': 'annually'
+      }
+      const period = habit.customPeriod ? periodMap[habit.customPeriod as keyof typeof periodMap] : 'every week'
+      return `Custom (${selectedDays} ${period})`
+    }
+    
+    const frequencyMap = {
+      'DAILY': 'Daily',
+      'WEEKLY': 'Weekly',
+      'MONTHLY': 'Monthly',
+      'CUSTOM': 'Custom'
+    }
+    return frequencyMap[habit.frequency as keyof typeof frequencyMap] || habit.frequency
+  }
+
   const viewModeButtons = [
     { mode: 'grid' as ViewMode, icon: Grid3X3, label: 'Grid' },
     { mode: 'list' as ViewMode, icon: List, label: 'List' },
@@ -239,6 +266,12 @@ export function HabitsView() {
             {habit.description && (
               <CardDescription className="mt-2">{habit.description}</CardDescription>
             )}
+            <div className="flex items-center gap-2 mt-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {getFrequencyDisplay(habit)} • {habit.target} time{habit.target > 1 ? 's' : ''}
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -307,6 +340,12 @@ export function HabitsView() {
                   {habit.description && (
                     <p className="text-sm text-muted-foreground truncate">{habit.description}</p>
                   )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {getFrequencyDisplay(habit)} • {habit.target} time{habit.target > 1 ? 's' : ''}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -384,6 +423,12 @@ export function HabitsView() {
                           {habit.description}
                         </p>
                       )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {getFrequencyDisplay(habit)} • {habit.target} time{habit.target > 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="p-4">

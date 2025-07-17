@@ -320,4 +320,49 @@
 /* Week header row background */
 .dark-theme .fc-theme-standard .fc-col-header {
   background-color: hsl(var(--muted));
-} 
+}
+
+/* Custom Slider Styles for Pomodoro Music Volume */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: hsl(var(--muted));
+  outline: none;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.slider:hover {
+  background: hsl(var(--accent));
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+  transform: scale(1.1);
+}
