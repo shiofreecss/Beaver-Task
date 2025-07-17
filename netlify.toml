@@ -9,16 +9,10 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
 
-# Handle client-side routing for Next.js
+# Handle Next.js routing properly
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
-
-# Additional redirects for Next.js API routes
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/___netlify-handler"
   status = 200
 
 [functions]

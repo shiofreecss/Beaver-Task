@@ -44,7 +44,7 @@ npm run dev
 ```
 
 4. **Open your browser**:
-Navigate to [http://localhost:3001](http://localhost:3001)
+Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🎯 Quick Usage Guide
 

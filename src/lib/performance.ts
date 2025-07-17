@@ -44,7 +44,7 @@ export class PerformanceMonitor {
     }
 
     const result: Record<string, any> = {}
-    for (const [op, measurements] of this.metrics.entries()) {
+    for (const [op, measurements] of Array.from(this.metrics.entries())) {
       result[op] = {
         count: measurements.length,
         avg: measurements.length > 0 ? measurements.reduce((a, b) => a + b, 0) / measurements.length : 0,

@@ -61,7 +61,8 @@ export const config = {
      * - login (login page)
      * - register (register page)
      * - presentation (presentation page)
+     * - root path (landing page)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|register|presentation|$).*)",
   ],
 } 
