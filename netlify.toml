@@ -9,11 +9,8 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
 
-# Handle Next.js routing properly
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Handle Next.js routing properly - let Next.js handle routing
+# Remove the SPA redirect rule as it conflicts with Next.js SSR
 
 [functions]
   node_bundler = "esbuild"
