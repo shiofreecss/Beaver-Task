@@ -4,52 +4,43 @@ import { authOptions } from '@/lib/auth-convex'
 import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../convex/_generated/api'
 import * as z from 'zod'
-import { Id } from '../../../../convex/_generated/dataModel'
 
 const projectSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  status: z.enum(['ACTIVE', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED']),
-  color: z.string().optional(),
+  status: z.enum(['ACTIVE', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).default('ACTIVE'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
   dueDate: z.string().optional().nullable(),
   organizationId: z.string().optional().nullable(),
-  categories: z.array(z.string()).optional().transform((val) => {
-    if (!val) return undefined;
-    return val; // Return the array as-is, including empty arrays
-  }),
-  website: z.string().optional().transform((val) => {
-    if (!val) return undefined;
-    // If it already starts with http:// or https://, return as is
-    if (val.startsWith('http://') || val.startsWith('https://')) return val;
-    // Otherwise, add https:// prefix
-    return `https://${val}`;
-  }),
-  documents: z.array(z.string()).optional().transform((val) => {
-    if (!val) return undefined;
-    if (val.length === 0) return []; // Return empty array instead of undefined
-    // Transform each document URL
-    const transformedDocs = val
-      .filter(doc => doc && doc.trim()) // Remove empty strings
-      .map(doc => {
-        // If it already starts with http:// or https://, return as is
-        if (doc.startsWith('http://') || doc.startsWith('https://')) return doc;
-        // Otherwise, add https:// prefix
-        return `https://${doc}`;
-      });
-    return transformedDocs.length > 0 ? transformedDocs : [];
-  }),
+  color: z.string().optional(),
+  categories: z.array(z.string()).optional(),
+  website: z.string().optional(),
+  documents: z.array(z.string()).optional(),
 })
 
-// Simple in-memory cache for user IDs (reset on server restart)
-const userIdCache = new Map<string, string>()
+const projectUpdateSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional(),
+  description: z.string().optional(),
+  status: z.enum(['ACTIVE', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  dueDate: z.string().optional().nullable(),
+  organizationId: z.string().optional().nullable(),
+  color: z.string().optional(),
+  categories: z.array(z.string()).optional(),
+  website: z.string().optional(),
+  documents: z.array(z.string()).optional(),
+})
 
-async function getOrCreateConvexUserId(sessionUserId: string, userName: string | null, userEmail: string | null) {
+// Cache for user IDs to avoid repeated lookups
+const userCache = new Map<string, string>()
+
+async function getConvexUserId(sessionUserId: string, userName: string, userEmail: string): Promise<string> {
   // Check cache first
-  if (userIdCache.has(sessionUserId)) {
-    return userIdCache.get(sessionUserId)!
+  if (userCache.has(sessionUserId)) {
+    return userCache.get(sessionUserId)!
   }
 
-  // If not in cache, query/create user
+  // Create or find user in Convex
   const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
     id: sessionUserId,
     name: userName || 'Unknown User',
@@ -57,7 +48,7 @@ async function getOrCreateConvexUserId(sessionUserId: string, userName: string |
   })
 
   // Cache the result
-  userIdCache.set(sessionUserId, convexUserId)
+  userCache.set(sessionUserId, convexUserId)
   return convexUserId
 }
 
@@ -69,15 +60,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Use cached user lookup
-    const convexUserId = await getOrCreateConvexUserId(
-      session.user.id,
-      session.user.name,
-      session.user.email
-    )
-
     const projects = await convexHttp.query(api.projects.getUserProjects, {
-      userId: convexUserId as Id<'users'>
+      userId: session.user.id as any
     })
 
     return NextResponse.json(projects)
@@ -95,25 +79,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Use cached user lookup
-    const convexUserId = await getOrCreateConvexUserId(
+    const convexUserId = await getConvexUserId(
       session.user.id,
-      session.user.name,
-      session.user.email
+      session.user.name || 'Unknown User',
+      session.user.email || ''
     )
 
     const body = await request.json()
     const validatedData = projectSchema.parse(body)
 
-    const project = await convexHttp.mutation(api.projects.createProject, {
-      ...validatedData,
-      dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
-      organizationId: validatedData.organizationId as any,
-      userId: convexUserId as Id<'users'>,
-      website: validatedData.website,
-      categories: validatedData.categories,
-      documents: validatedData.documents
-    })
+    // Prepare clean data for Convex
+    const convexData: any = {
+      name: validatedData.name,
+      userId: convexUserId
+    }
+
+    // Only add fields that have actual values
+    if (validatedData.description !== undefined) convexData.description = validatedData.description
+    if (validatedData.status !== undefined) convexData.status = validatedData.status
+    if (validatedData.priority !== undefined) convexData.priority = validatedData.priority
+    if (validatedData.dueDate !== undefined && validatedData.dueDate !== null) {
+      convexData.dueDate = new Date(validatedData.dueDate).getTime()
+    }
+    if (validatedData.organizationId !== undefined && validatedData.organizationId !== null && validatedData.organizationId !== '') {
+      convexData.organizationId = validatedData.organizationId as any
+    }
+    if (validatedData.color !== undefined) convexData.color = validatedData.color
+    if (validatedData.categories !== undefined) convexData.categories = validatedData.categories
+    if (validatedData.website !== undefined) convexData.website = validatedData.website
+    if (validatedData.documents !== undefined) convexData.documents = validatedData.documents
+
+    const project = await convexHttp.mutation(api.projects.createProject, convexData)
 
     return NextResponse.json(project)
   } catch (error) {
@@ -133,31 +129,44 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure user exists in Convex database
-    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
-      id: session.user.id,
-      name: session.user.name || 'Unknown User',
-      email: session.user.email || '',
-    })
+    const convexUserId = await getConvexUserId(
+      session.user.id,
+      session.user.name || 'Unknown User',
+      session.user.email || ''
+    )
 
     const body = await request.json()
     const { id, ...updateData } = body
-    const validatedData = projectSchema.parse(updateData)
 
     if (!id) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
     }
 
-    const project = await convexHttp.mutation(api.projects.updateProject, {
+    const validatedData = projectUpdateSchema.parse(updateData)
+
+    // Prepare clean data for Convex
+    const convexData: any = {
       projectId: id as any,
-      ...validatedData,
-      dueDate: validatedData.dueDate ? new Date(validatedData.dueDate).getTime() : undefined,
-      organizationId: validatedData.organizationId as any,
-      userId: convexUserId,
-      website: validatedData.website,
-      categories: validatedData.categories,
-      documents: validatedData.documents
-    })
+      userId: convexUserId
+    }
+
+    // Only add fields that have actual values
+    if (validatedData.name !== undefined) convexData.name = validatedData.name
+    if (validatedData.description !== undefined) convexData.description = validatedData.description
+    if (validatedData.status !== undefined) convexData.status = validatedData.status
+    if (validatedData.priority !== undefined) convexData.priority = validatedData.priority
+    if (validatedData.dueDate !== undefined && validatedData.dueDate !== null) {
+      convexData.dueDate = new Date(validatedData.dueDate).getTime()
+    }
+    if (validatedData.organizationId !== undefined && validatedData.organizationId !== null && validatedData.organizationId !== '') {
+      convexData.organizationId = validatedData.organizationId as any
+    }
+    if (validatedData.color !== undefined) convexData.color = validatedData.color
+    if (validatedData.categories !== undefined) convexData.categories = validatedData.categories
+    if (validatedData.website !== undefined) convexData.website = validatedData.website
+    if (validatedData.documents !== undefined) convexData.documents = validatedData.documents
+
+    const project = await convexHttp.mutation(api.projects.updateProject, convexData)
 
     return NextResponse.json(project)
   } catch (error) {
@@ -177,36 +186,52 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure user exists in Convex database
-    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
-      id: session.user.id,
-      name: session.user.name || 'Unknown User',
-      email: session.user.email || '',
-    })
+    const convexUserId = await getConvexUserId(
+      session.user.id,
+      session.user.name || 'Unknown User',
+      session.user.email || ''
+    )
 
-    // Get project ID from request body
-    const body = await request.json()
-    const { projectId } = body
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
 
-    if (!projectId) {
+    if (!id) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
     }
 
-    console.log('Deleting project:', { projectId, userId: convexUserId })
+    // Validate that the ID looks like a valid Convex ID
+    if (!id.match(/^[a-zA-Z0-9_-]+$/)) {
+      return NextResponse.json({ error: 'Invalid project ID format' }, { status: 400 })
+    }
 
-    await convexHttp.mutation(api.projects.deleteProject, {
-      projectId: projectId as any,
-      userId: convexUserId
-    })
+    try {
+      await convexHttp.mutation(api.projects.deleteProject, {
+        projectId: id as any,
+        userId: convexUserId
+      })
 
-    return new NextResponse(null, { status: 204 })
+      return new NextResponse(null, { status: 204 })
+    } catch (convexError: any) {
+      console.error('Convex error during project deletion:', convexError)
+      
+      // Handle specific Convex errors
+      if (convexError.data === 'Project not found or unauthorized') {
+        return NextResponse.json({ 
+          error: 'Project not found or you do not have permission to delete it' 
+        }, { status: 404 })
+      }
+      
+      // Re-throw other Convex errors
+      throw convexError
+    }
   } catch (error) {
     console.error('Error deleting project:', error)
-    if (error instanceof Error && 'message' in error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    
+    // Return more specific error messages
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to delete project'
-    }, { status: 500 })
+    
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 })
   }
 } 

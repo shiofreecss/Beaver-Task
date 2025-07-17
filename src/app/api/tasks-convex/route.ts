@@ -27,6 +27,27 @@ const taskUpdateSchema = z.object({
   parentId: z.string().optional().nullable(),
 })
 
+// Cache for user IDs to avoid repeated lookups
+const userCache = new Map<string, string>()
+
+async function getConvexUserId(sessionUserId: string, userName: string, userEmail: string): Promise<string> {
+  // Check cache first
+  if (userCache.has(sessionUserId)) {
+    return userCache.get(sessionUserId)!
+  }
+
+  // Create or find user in Convex
+  const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
+    id: sessionUserId,
+    name: userName || 'Unknown User',
+    email: userEmail || '',
+  })
+
+  // Cache the result
+  userCache.set(sessionUserId, convexUserId)
+  return convexUserId
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -54,12 +75,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure user exists in Convex database
-    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
-      id: session.user.id,
-      name: session.user.name || 'Unknown User',
-      email: session.user.email || '',
-    })
+    const convexUserId = await getConvexUserId(
+      session.user.id,
+      session.user.name || 'Unknown User',
+      session.user.email || ''
+    )
 
     const body = await request.json()
     const validatedData = taskSchema.parse(body)
@@ -105,12 +125,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure user exists in Convex database
-    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
-      id: session.user.id,
-      name: session.user.name || 'Unknown User',
-      email: session.user.email || '',
-    })
+    const convexUserId = await getConvexUserId(
+      session.user.id,
+      session.user.name || 'Unknown User',
+      session.user.email || ''
+    )
 
     const body = await request.json()
     const { id, ...updateData } = body
@@ -163,12 +182,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Ensure user exists in Convex database
-    const convexUserId = await convexHttp.mutation(api.users.findOrCreateUser, {
-      id: session.user.id,
-      name: session.user.name || 'Unknown User',
-      email: session.user.email || '',
-    })
+    const convexUserId = await getConvexUserId(
+      session.user.id,
+      session.user.name || 'Unknown User',
+      session.user.email || ''
+    )
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

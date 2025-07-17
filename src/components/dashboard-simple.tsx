@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   CheckSquare, 
@@ -9,7 +9,8 @@ import {
   Target, 
   Timer,
   TrendingUp,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react'
 import { Sidebar } from '@/components/sidebar'
 import { DashboardCharts } from '@/components/dashboard/charts'
@@ -27,7 +28,7 @@ import { HabitsView } from '@/components/habits/habits-view'
 import { PomodoroView } from '@/components/pomodoro/pomodoro-view'
 import CalendarView from '@/components/calendar/calendar-view'
 
-function DashboardOverview() {
+const DashboardOverview = memo(function DashboardOverview() {
   const tasks = useTaskStore(state => state.tasks)
   const projects = useProjectStore(state => state.projects)
   const habits = useHabitStore(state => state.habits)
@@ -36,6 +37,8 @@ function DashboardOverview() {
   const fetchProjects = useProjectStore(state => state.fetchProjects)
   const fetchHabits = useHabitStore(state => state.fetchHabits)
   const fetchSessions = usePomodoroStore(state => state.fetchSessions)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const completedTasks = tasks.filter(task => task.status === 'COMPLETED' && !task.parentId).length
   const activeProjects = projects.filter(project => project.status === 'ACTIVE').length
@@ -43,23 +46,64 @@ function DashboardOverview() {
   const focusMinutes = sessions.reduce((acc, session) => acc + (session.duration || 0), 0)
 
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch with loading state
     const fetchAllData = async () => {
-      await Promise.all([
-        fetchTasks(),
-        fetchProjects(),
-        fetchHabits(),
-        fetchSessions()
-      ])
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        await Promise.allSettled([
+          fetchTasks(),
+          fetchProjects(),
+          fetchHabits(),
+          fetchSessions()
+        ])
+      } catch (err) {
+        setError('Failed to load dashboard data')
+        console.error('Dashboard data fetch error:', err)
+      } finally {
+        setIsLoading(false)
+      }
     }
     
     fetchAllData()
 
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchAllData, 30000)
+    // Set up auto-refresh every 60 seconds (reduced from 30)
+    const interval = setInterval(() => {
+      fetchAllData()
+    }, 60000)
 
     return () => clearInterval(interval)
   }, [fetchTasks, fetchProjects, fetchHabits, fetchSessions])
+
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="text-lg">Loading dashboard...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
@@ -110,9 +154,9 @@ function DashboardOverview() {
       />
     </div>
   )
-}
+})
 
-export function DashboardSimple() {
+export const DashboardSimple = memo(function DashboardSimple() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
   const renderContent = () => {
@@ -144,4 +188,4 @@ export function DashboardSimple() {
       </main>
     </div>
   )
-} 
+}) 
