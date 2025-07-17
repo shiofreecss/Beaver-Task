@@ -29,7 +29,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json([]);
     }
 
     const convexUserId = await getConvexUserId(
@@ -46,6 +46,9 @@ export async function GET() {
     return NextResponse.json(events);
   } catch (error) {
     console.error('Error fetching calendar events:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json([]);
   }
-} 
+}
+
+// Add this to prevent static generation issues
+export const dynamic = 'force-dynamic';

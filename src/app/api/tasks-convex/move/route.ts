@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest) {
 
     const task = await convexHttp.mutation(api.tasks.moveTask, {
       taskId: taskId as any,
-      userId: convexUserId,
+      userId: convexUserId as any,
       columnId
     })
 

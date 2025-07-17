@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Prepare clean data for Convex
     const convexData: any = {
       name: validatedData.name,
-      userId: convexUserId
+      userId: convexUserId as any
     }
 
     // Only add fields that have actual values
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest) {
     // Prepare clean data for Convex
     const convexData: any = {
       projectId: id as any,
-      userId: convexUserId
+      userId: convexUserId as any
     }
 
     // Only add fields that have actual values
@@ -207,7 +207,7 @@ export async function DELETE(request: NextRequest) {
     try {
       await convexHttp.mutation(api.projects.deleteProject, {
         projectId: id as any,
-        userId: convexUserId
+        userId: convexUserId as any
       })
 
       return new NextResponse(null, { status: 204 })

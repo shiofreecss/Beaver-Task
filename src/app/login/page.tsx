@@ -1,9 +1,27 @@
+import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/login-form'
 import { LoginThemeToggle } from '@/components/auth/login-theme-toggle'
 import { LoginSlides } from '@/components/auth/login-slides'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { ArrowDown, ChevronRight } from 'lucide-react'
+
+// Loading component for Suspense
+function LoginFormLoading() {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+    </div>
+  )
+}
 
 export default function LoginPage() {
   return (
@@ -35,7 +53,9 @@ export default function LoginPage() {
             {/* Authentication Box */}
             <Card>
               <div className="p-6">
-                <LoginForm />
+                <Suspense fallback={<LoginFormLoading />}>
+                  <LoginForm />
+                </Suspense>
                 
                 <div className="mt-6 text-center">
                   <div className="relative">
@@ -48,8 +68,8 @@ export default function LoginPage() {
                   </div>
                   
                   <div className="mt-4">
-                    <Link 
-                      href="/register" 
+                    <Link
+                      href="/register"
                       className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-secondary-foreground bg-secondary border border-border rounded-lg hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
                     >
                       Create new account
@@ -71,14 +91,6 @@ export default function LoginPage() {
               </Link>
               .
             </p>
-
-            {/* Learn More Button */}
-            {/*<div className="text-center">
-              <button className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Learn more
-                <ArrowDown className="ml-1 h-4 w-4" />
-              </button>
-            </div>*/}
           </div>
         </div>
       </div>
@@ -89,4 +101,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-} 
+}
