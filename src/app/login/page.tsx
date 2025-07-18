@@ -1,58 +1,10 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/login-form'
 import { LoginSlides } from '@/components/auth/login-slides'
 import { LoginThemeToggle } from '@/components/auth/login-theme-toggle'
-import { toast } from '@/components/ui/use-toast'
+import { LoginPageClient } from '@/components/auth/login-page-client'
 
 export default function LoginPage() {
-  const [mounted, setMounted] = useState(false)
-  const searchParams = useSearchParams()
-
-  useEffect(() => {
-    setMounted(true)
-    
-    // Handle authentication errors from URL parameters
-    const error = searchParams.get('error')
-    if (error) {
-      let errorMessage = 'An authentication error occurred.'
-      
-      switch (error) {
-        case 'Configuration':
-          errorMessage = 'There is a problem with the server configuration. Please contact support.'
-          break
-        case 'AccessDenied':
-          errorMessage = 'You do not have permission to sign in.'
-          break
-        case 'Verification':
-          errorMessage = 'The verification token has expired or has already been used.'
-          break
-        case 'Default':
-          errorMessage = 'An error occurred during authentication. Please try again.'
-          break
-        default:
-          errorMessage = `Authentication error: ${error}`
-      }
-      
-      toast({
-        title: 'Authentication Error',
-        description: errorMessage,
-        variant: 'destructive',
-      })
-      
-      // Clear the error from URL
-      const newUrl = new URL(window.location.href)
-      newUrl.searchParams.delete('error')
-      window.history.replaceState({}, '', newUrl.toString())
-    }
-  }, [searchParams])
-
-  if (!mounted) {
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="flex min-h-screen">
@@ -68,7 +20,9 @@ export default function LoginPage() {
               </p>
             </div>
             
-            <LoginForm />
+            <Suspense fallback={<LoginFormSkeleton />}>
+              <LoginPageClient />
+            </Suspense>
             
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -93,6 +47,25 @@ export default function LoginPage() {
         <div className="absolute top-4 right-4">
           <LoginThemeToggle />
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Loading skeleton for the login form
+function LoginFormSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
       </div>
     </div>
   )
