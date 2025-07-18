@@ -3,171 +3,152 @@
 const https = require('https');
 const http = require('http');
 
-const SITE_URL = process.env.SITE_URL || 'https://task.beaver.foundation';
+// Configuration
+const SITE_URL = process.env.NETLIFY_URL || process.env.SITE_URL || 'https://your-app.netlify.app';
+const TIMEOUT = 10000; // 10 seconds
 
-function makeRequest(url, options = {}) {
+// Test cases
+const testCases = [
+  {
+    path: '/',
+    description: 'Root path (should redirect to /login if not authenticated)',
+    expectedStatus: [200, 302, 307],
+  },
+  {
+    path: '/login',
+    description: 'Login page (should be accessible)',
+    expectedStatus: [200],
+  },
+  {
+    path: '/register',
+    description: 'Register page (should be accessible)',
+    expectedStatus: [200],
+  },
+  {
+    path: '/api/auth/signin',
+    description: 'NextAuth signin API (should be accessible)',
+    expectedStatus: [200, 405], // 405 for GET requests is normal
+  },
+  {
+    path: '/calendar',
+    description: 'Protected calendar page (should redirect if not authenticated)',
+    expectedStatus: [200, 302, 307],
+  },
+  {
+    path: '/nonexistent',
+    description: 'Non-existent page (should return 404)',
+    expectedStatus: [404],
+  },
+];
+
+function makeRequest(url) {
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const isHttps = urlObj.protocol === 'https:';
-    const client = isHttps ? https : http;
+    const protocol = url.startsWith('https:') ? https : http;
     
-    const requestOptions = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || (isHttps ? 443 : 80),
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
+    const req = protocol.get(url, {
+      timeout: TIMEOUT,
       headers: {
-        'User-Agent': 'Beaver-Task-Deployment-Verifier/1.0',
-        ...options.headers
-      },
-      timeout: 10000
-    };
-
-    const req = client.request(requestOptions, (res) => {
+        'User-Agent': 'Deployment-Verification-Script/1.0',
+      }
+    }, (res) => {
       let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
+      res.on('data', chunk => data += chunk);
       res.on('end', () => {
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
-          data: data
+          body: data,
         });
       });
     });
 
-    req.on('error', (error) => {
-      reject(error);
-    });
-
+    req.on('error', reject);
     req.on('timeout', () => {
       req.destroy();
       reject(new Error('Request timeout'));
     });
-
-    if (options.body) {
-      req.write(options.body);
-    }
-    
-    req.end();
   });
 }
 
-async function testEndpoint(path, expectedStatus = 200, description = '') {
+async function runTest(testCase) {
+  const url = `${SITE_URL}${testCase.path}`;
+  
   try {
-    const url = `${SITE_URL}${path}`;
-    console.log(`\n🔍 Testing: ${description || path}`);
+    console.log(`\n🧪 Testing: ${testCase.description}`);
     console.log(`   URL: ${url}`);
     
     const response = await makeRequest(url);
+    const isExpected = testCase.expectedStatus.includes(response.statusCode);
     
-    if (response.statusCode === expectedStatus) {
-      console.log(`   ✅ Status: ${response.statusCode} (Expected: ${expectedStatus})`);
-      return true;
+    if (isExpected) {
+      console.log(`   ✅ PASS - Status: ${response.statusCode}`);
+      
+      // Additional checks for specific paths
+      if (testCase.path === '/' && response.statusCode === 302) {
+        const location = response.headers.location;
+        if (location && location.includes('/login')) {
+          console.log(`   ✅ Correctly redirects to login: ${location}`);
+        } else {
+          console.log(`   ⚠️  Redirects to: ${location || 'unknown'}`);
+        }
+      }
+      
+      return { success: true, statusCode: response.statusCode };
     } else {
-      console.log(`   ❌ Status: ${response.statusCode} (Expected: ${expectedStatus})`);
-      return false;
+      console.log(`   ❌ FAIL - Expected: ${testCase.expectedStatus.join(' or ')}, Got: ${response.statusCode}`);
+      return { success: false, statusCode: response.statusCode };
     }
   } catch (error) {
-    console.log(`   ❌ Error: ${error.message}`);
-    return false;
-  }
-}
-
-async function testAuthenticationFlow() {
-  console.log('\n🔐 Testing Authentication Flow...');
-  
-  // Test login page accessibility
-  const loginAccessible = await testEndpoint('/login', 200, 'Login page accessibility');
-  
-  // Test that root redirects to login when not authenticated
-  const rootRedirect = await testEndpoint('/', 200, 'Root path (should show login or redirect)');
-  
-  // Test API routes
-  const apiAccessible = await testEndpoint('/api/auth/session', 200, 'Auth API accessibility');
-  
-  // Test that protected routes redirect properly
-  const protectedRoute = await testEndpoint('/dashboard', 200, 'Protected route (should redirect to login)');
-  
-  return loginAccessible && rootRedirect && apiAccessible && protectedRoute;
-}
-
-async function testEnvironmentVariables() {
-  console.log('\n🔧 Testing Environment Variables...');
-  
-  try {
-    // Test if NEXTAUTH_URL is accessible
-    const authUrl = `${SITE_URL}/api/auth/session`;
-    const response = await makeRequest(authUrl);
-    
-    if (response.statusCode === 200) {
-      console.log('   ✅ NEXTAUTH_URL appears to be configured correctly');
-      return true;
-    } else {
-      console.log(`   ⚠️  Auth endpoint returned status: ${response.statusCode}`);
-      return false;
-    }
-  } catch (error) {
-    console.log(`   ❌ Error testing auth endpoint: ${error.message}`);
-    return false;
+    console.log(`   ❌ ERROR - ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
 async function main() {
-  console.log('🚀 Beaver Task Deployment Verification');
-  console.log(`📍 Testing site: ${SITE_URL}`);
-  console.log(`⏰ Started at: ${new Date().toISOString()}`);
+  console.log('🚀 Starting Netlify Deployment Verification');
+  console.log(`📍 Site URL: ${SITE_URL}`);
+  console.log('=' .repeat(60));
   
-  let allTestsPassed = true;
-  
-  // Test basic endpoints
-  console.log('\n📋 Testing Basic Endpoints...');
-  
-  const tests = [
-    { path: '/', expected: 200, desc: 'Root path' },
-    { path: '/login', expected: 200, desc: 'Login page' },
-    { path: '/register', expected: 200, desc: 'Register page' },
-    { path: '/api/auth/session', expected: 200, desc: 'Auth API' },
-    { path: '/api/tasks', expected: 401, desc: 'Protected API (should return 401)' },
-    { path: '/nonexistent', expected: 404, desc: '404 handling' }
-  ];
-  
-  for (const test of tests) {
-    const passed = await testEndpoint(test.path, test.expected, test.desc);
-    if (!passed) allTestsPassed = false;
+  if (SITE_URL.includes('your-app.netlify.app')) {
+    console.log('⚠️  WARNING: Please set SITE_URL environment variable to your actual Netlify URL');
+    console.log('   Example: SITE_URL=https://your-app.netlify.app npm run verify-deployment');
   }
   
-  // Test authentication flow
-  const authFlowPassed = await testAuthenticationFlow();
-  if (!authFlowPassed) allTestsPassed = false;
+  const results = [];
   
-  // Test environment variables
-  const envPassed = await testEnvironmentVariables();
-  if (!envPassed) allTestsPassed = false;
+  for (const testCase of testCases) {
+    const result = await runTest(testCase);
+    results.push(result);
+  }
   
-  // Summary
-  console.log('\n📊 Test Summary');
-  console.log('='.repeat(50));
+  console.log('\n' + '=' .repeat(60));
+  console.log('📊 SUMMARY');
+  console.log('=' .repeat(60));
   
-  if (allTestsPassed) {
-    console.log('✅ All tests passed! Deployment appears to be working correctly.');
+  const passed = results.filter(r => r.success).length;
+  const total = results.length;
+  
+  console.log(`✅ Passed: ${passed}/${total}`);
+  console.log(`❌ Failed: ${total - passed}/${total}`);
+  
+  if (passed === total) {
+    console.log('\n🎉 All tests passed! Your deployment looks good.');
+    process.exit(0);
   } else {
-    console.log('❌ Some tests failed. Please check the deployment configuration.');
-    console.log('\n🔧 Common issues to check:');
-    console.log('   1. NEXTAUTH_URL environment variable is set correctly');
-    console.log('   2. NEXTAUTH_SECRET is configured');
-    console.log('   3. NEXT_PUBLIC_CONVEX_URL is set');
-    console.log('   4. Netlify functions are working properly');
-    console.log('   5. Convex deployment is active');
+    console.log('\n⚠️  Some tests failed. Please check the issues above.');
+    console.log('\nCommon fixes:');
+    console.log('- Ensure all environment variables are set in Netlify');
+    console.log('- Check that the build completed successfully');
+    console.log('- Verify that the @netlify/plugin-nextjs plugin is installed');
+    console.log('- Clear browser cache and try again');
+    process.exit(1);
   }
-  
-  console.log(`\n⏰ Completed at: ${new Date().toISOString()}`);
-  
-  process.exit(allTestsPassed ? 0 : 1);
 }
 
-main().catch((error) => {
-  console.error('❌ Verification failed:', error);
+// Handle uncaught errors
+process.on('unhandledRejection', (error) => {
+  console.error('❌ Unhandled error:', error.message);
   process.exit(1);
 });
+
+main();

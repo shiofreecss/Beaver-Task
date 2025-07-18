@@ -93,9 +93,23 @@ export function LoginForm() {
 
       if (result?.error) {
         console.error('Login error:', result.error)
+        
+        // Provide more specific error messages
+        let errorMessage = 'Invalid email or password'
+        
+        if (result.error === 'Configuration') {
+          errorMessage = 'Authentication is not properly configured. Please contact support.'
+        } else if (result.error === 'AccessDenied') {
+          errorMessage = 'Access denied. Please check your credentials.'
+        } else if (result.error === 'Verification') {
+          errorMessage = 'Account verification required.'
+        } else if (result.error.includes('NEXTAUTH')) {
+          errorMessage = 'Authentication service error. Please try again later.'
+        }
+        
         toast({
-          title: 'Error',
-          description: 'Invalid email or password',
+          title: 'Login Failed',
+          description: errorMessage,
           variant: 'destructive',
         })
         return

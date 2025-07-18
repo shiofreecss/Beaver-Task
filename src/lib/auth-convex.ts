@@ -29,6 +29,22 @@ declare module "next-auth/jwt" {
   }
 }
 
+// Validate required environment variables
+const requiredEnvVars = {
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
+}
+
+const missingEnvVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key)
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '))
+  console.error('Please set these variables in your Netlify environment settings')
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -37,7 +53,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
     signOut: "/login",
-    error: "/login", // Redirect to login page on auth errors
+    error: "/login", // Redirect to login page on error
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -49,36 +65,42 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log("Auth: Missing credentials")
+          console.log('❌ Missing credentials')
           return null
         }
 
         try {
+          // Validate Convex URL is available
+          if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+            console.error('❌ NEXT_PUBLIC_CONVEX_URL is not set')
+            return null
+          }
+
           // Use Convex to get user
           const user = await convexHttp.query(api.users.getUserByEmail, {
             email: credentials.email
           }) as UserWithPassword | null
 
           if (!user) {
-            console.log("Auth: User not found for email:", credentials.email)
+            console.log('❌ User not found:', credentials.email)
             return null
           }
 
           const isPasswordValid = await compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            console.log("Auth: Invalid password for user:", credentials.email)
+            console.log('❌ Invalid password for user:', credentials.email)
             return null
           }
 
-          console.log("Auth: Successful login for user:", credentials.email)
+          console.log('✅ Authentication successful for user:', credentials.email)
           return {
             id: user._id,
             email: user.email,
             name: user.name,
           }
         } catch (error) {
-          console.error("Auth: Error during authentication:", error)
+          console.error('❌ Authentication error:', error)
           return null
         }
       }
@@ -105,9 +127,6 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async redirect({ url, baseUrl }) {
-      // Log redirect information for debugging
-      console.log("Auth redirect:", { url, baseUrl, NEXTAUTH_URL: process.env.NEXTAUTH_URL })
-      
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // Allows callback URLs on the same origin
@@ -115,5 +134,5 @@ export const authOptions: NextAuthOptions = {
       return baseUrl
     }
   },
-  debug: process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_DEBUG === 'true',
+  debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
 } 

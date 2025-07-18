@@ -1,71 +1,103 @@
 import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/login-form'
-import { LoginSlides } from '@/components/auth/login-slides'
 import { LoginThemeToggle } from '@/components/auth/login-theme-toggle'
-import { LoginPageClient } from '@/components/auth/login-page-client'
+import { LoginSlides } from '@/components/auth/login-slides'
+import { Card } from '@/components/ui/card'
+import Link from 'next/link'
+import { ArrowDown, ChevronRight } from 'lucide-react'
 
-export default function LoginPage() {
+// Loading component for Suspense
+function LoginFormLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="flex min-h-screen">
-        {/* Left side - Login Form */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
-            <div className="text-center">
-              <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-                Welcome back
-              </h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Sign in to your account to continue
-              </p>
-            </div>
-            
-            <Suspense fallback={<LoginFormSkeleton />}>
-              <LoginPageClient />
-            </Suspense>
-            
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Don't have an account?{' '}
-                <a
-                  href="/register"
-                  className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Sign up
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right side - Slides */}
-        <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center">
-          <LoginSlides />
-        </div>
-
-        {/* Theme toggle */}
-        <div className="absolute top-4 right-4">
-          <LoginThemeToggle />
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
       </div>
+      <div className="space-y-2">
+        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
     </div>
   )
 }
 
-// Loading skeleton for the login form
-function LoginFormSkeleton() {
+export default function LoginPage() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+    <div className="min-h-screen flex bg-background">
+      <LoginThemeToggle />
+      {/* Left Section - Authentication */}
+      <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 xl:px-24">
+        <div className="max-w-md mx-auto w-full">
+          {/* Logo */}
+          <div className="flex items-center justify-center lg:justify-start mb-8 mt-8 lg:mt-0">
+            <div className="mr-3 text-4xl">
+              🦫
+            </div>
+            <span className="text-2xl font-semibold text-foreground">Beaver Task</span>
+          </div>
+
+          {/* Main Content */}
+          <div className="space-y-6">
+            {/* Slogan */}
+            <div className="space-y-2 text-center lg:text-left">
+              <h1 className="text-4xl font-serif text-foreground leading-tight">
+                Your productivity, amplified.
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Privacy-first task management that helps you organize with confidence.
+              </p>
+            </div>
+
+            {/* Authentication Box */}
+            <Card>
+              <div className="p-6">
+                <Suspense fallback={<LoginFormLoading />}>
+                  <LoginForm />
+                </Suspense>
+                
+                <div className="mt-6 text-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-card text-muted-foreground">OR</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Link
+                      href="/register"
+                      className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-secondary-foreground bg-secondary border border-border rounded-lg hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                    >
+                      Create new account
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Legal Text */}
+            <p className="text-xs text-muted-foreground text-center leading-relaxed">
+              By continuing, you agree to our{' '}
+              <Link href="/terms" className="text-primary hover:underline">
+                Terms of Service
+              </Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-        </div>
-        <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </div>
+
+      {/* Right Section - Interactive Slides */}
+      <div className="hidden lg:flex flex-1 bg-muted/50 items-center justify-center relative">
+        <LoginSlides />
       </div>
     </div>
   )
