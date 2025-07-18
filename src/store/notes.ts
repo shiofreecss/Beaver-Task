@@ -5,8 +5,18 @@ export interface Note {
   title: string
   content: string
   tags: string[]
+  type: 'simple' | 'meeting' | 'document'
   projectId?: string
   taskId?: string
+  // Meeting-specific fields
+  meetingDate?: string
+  meetingCategory?: string
+  attendees?: string[]
+  summaryAI?: string
+  // Document-specific fields
+  documentCategory?: string
+  lastEditedBy?: string
+  lastEditedTime?: string
   createdAt: string
   updatedAt: string
   projectName?: string
@@ -16,11 +26,44 @@ export interface Note {
 interface NoteState {
   notes: Note[]
   setNotes: (notes: Note[]) => void
-  addNote: (note: { title: string; content: string; tags: string[] | string; projectId?: string; taskId?: string }) => Promise<void>
-  updateNote: (id: string, note: Partial<{ title: string; content: string; tags: string[] | string; projectId?: string; taskId?: string }>) => Promise<void>
+  addNote: (note: { 
+    title: string; 
+    content: string; 
+    tags: string[] | string; 
+    type: 'simple' | 'meeting' | 'document';
+    projectId?: string; 
+    taskId?: string;
+    // Meeting-specific fields
+    meetingDate?: string;
+    meetingCategory?: string;
+    attendees?: string[];
+    summaryAI?: string;
+    // Document-specific fields
+    documentCategory?: string;
+    lastEditedBy?: string;
+    lastEditedTime?: string;
+  }) => Promise<void>
+  updateNote: (id: string, note: Partial<{ 
+    title: string; 
+    content: string; 
+    tags: string[] | string; 
+    type: 'simple' | 'meeting' | 'document';
+    projectId?: string; 
+    taskId?: string;
+    // Meeting-specific fields
+    meetingDate?: string;
+    meetingCategory?: string;
+    attendees?: string[];
+    summaryAI?: string;
+    // Document-specific fields
+    documentCategory?: string;
+    lastEditedBy?: string;
+    lastEditedTime?: string;
+  }>) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   getNotesByProject: (projectId: string) => Note[]
   getNotesByTask: (taskId: string) => Note[]
+  getNotesByType: (type: 'simple' | 'meeting' | 'document') => Note[]
   fetchNotes: () => Promise<void>
   resetStore: () => void
 }
@@ -101,6 +144,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   getNotesByTask: (taskId) => {
     return get().notes.filter((note) => note.taskId === taskId)
+  },
+
+  getNotesByType: (type) => {
+    return get().notes.filter((note) => note.type === type)
   },
 
   fetchNotes: async () => {

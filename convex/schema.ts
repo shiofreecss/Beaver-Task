@@ -114,15 +114,26 @@ export default defineSchema({
     title: v.string(),
     content: v.string(),
     tags: v.string(),
+    type: v.string(), // 'simple', 'meeting', 'document'
     projectId: v.optional(v.id("projects")),
     taskId: v.optional(v.id("tasks")),
     userId: v.id("users"),
+    // Meeting-specific fields
+    meetingDate: v.optional(v.number()),
+    meetingCategory: v.optional(v.string()),
+    attendees: v.optional(v.array(v.string())),
+    summaryAI: v.optional(v.string()),
+    // Document-specific fields
+    documentCategory: v.optional(v.string()),
+    lastEditedBy: v.optional(v.string()),
+    lastEditedTime: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
     .index("by_projectId", ["projectId"])
-    .index("by_taskId", ["taskId"]),
+    .index("by_taskId", ["taskId"])
+    .index("by_type", ["type"]),
 
   habits: defineTable({
     name: v.string(),

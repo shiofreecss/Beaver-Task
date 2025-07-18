@@ -14,8 +14,18 @@ const noteSchema = z.object({
     }
     return val;
   }),
+  type: z.enum(['simple', 'meeting', 'document']).optional().default('simple'),
   projectId: z.string().optional().nullable(),
   taskId: z.string().optional().nullable(),
+  // Meeting-specific fields
+  meetingDate: z.string().optional().nullable(),
+  meetingCategory: z.string().optional().nullable(),
+  attendees: z.array(z.string()).optional(),
+  summaryAI: z.string().optional().nullable(),
+  // Document-specific fields
+  documentCategory: z.string().optional().nullable(),
+  lastEditedBy: z.string().optional().nullable(),
+  lastEditedTime: z.string().optional().nullable(),
 })
 
 export async function GET() {
@@ -62,12 +72,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = noteSchema.parse(body)
 
-    const note = await convexHttp.mutation(api.notes.createNote, {
+    // Convert date strings to timestamps and handle null values
+    const noteData = {
       ...validatedData,
       projectId: validatedData.projectId ? (validatedData.projectId as any) : undefined,
       taskId: validatedData.taskId ? (validatedData.taskId as any) : undefined,
+      meetingDate: validatedData.meetingDate ? new Date(validatedData.meetingDate).getTime() : undefined,
+      meetingCategory: validatedData.meetingCategory || undefined,
+      attendees: validatedData.attendees || undefined,
+      summaryAI: validatedData.summaryAI || undefined,
+      documentCategory: validatedData.documentCategory || undefined,
+      lastEditedBy: validatedData.lastEditedBy || undefined,
+      lastEditedTime: validatedData.lastEditedTime ? new Date(validatedData.lastEditedTime).getTime() : undefined,
       userId: convexUserId
-    })
+    }
+
+    const note = await convexHttp.mutation(api.notes.createNote, noteData)
 
     return NextResponse.json(note)
   } catch (error) {
@@ -110,21 +130,25 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Note ID is required' }, { status: 400 })
     }
 
-    console.log('Calling Convex updateNote with:', {
-      noteId: id,
-      ...validatedData,
-      projectId: validatedData.projectId ? (validatedData.projectId as any) : undefined,
-      taskId: validatedData.taskId ? (validatedData.taskId as any) : undefined,
-      userId: convexUserId
-    })
-
-    const note = await convexHttp.mutation(api.notes.updateNote, {
+    // Convert date strings to timestamps and handle null values
+    const noteData = {
       noteId: id as any,
       ...validatedData,
       projectId: validatedData.projectId ? (validatedData.projectId as any) : undefined,
       taskId: validatedData.taskId ? (validatedData.taskId as any) : undefined,
+      meetingDate: validatedData.meetingDate ? new Date(validatedData.meetingDate).getTime() : undefined,
+      meetingCategory: validatedData.meetingCategory || undefined,
+      attendees: validatedData.attendees || undefined,
+      summaryAI: validatedData.summaryAI || undefined,
+      documentCategory: validatedData.documentCategory || undefined,
+      lastEditedBy: validatedData.lastEditedBy || undefined,
+      lastEditedTime: validatedData.lastEditedTime ? new Date(validatedData.lastEditedTime).getTime() : undefined,
       userId: convexUserId
-    })
+    }
+
+    console.log('Calling Convex updateNote with:', noteData)
+
+    const note = await convexHttp.mutation(api.notes.updateNote, noteData)
 
     console.log('Note updated successfully:', note)
     return NextResponse.json(note)
@@ -164,7 +188,7 @@ export async function DELETE(request: NextRequest) {
       userId: convexUserId
     })
 
-    return new NextResponse(null, { status: 204 })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting note:', error)
     return NextResponse.json({ error: 'Failed to delete note' }, { status: 500 })
