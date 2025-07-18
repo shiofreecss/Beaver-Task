@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hash } from 'bcrypt'
+import { hash } from 'bcryptjs'
 import { convexHttp } from '@/lib/convex'
 import { api } from '../../../../../convex/_generated/api'
 import * as z from 'zod'

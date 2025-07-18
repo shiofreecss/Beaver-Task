@@ -1,46 +1,39 @@
-const { ConvexHttpClient } = require("convex/browser");
+const https = require('https');
 
-// Function to test Convex connection
-async function testConvexConnection() {
-  console.log('🔍 Testing Convex connection...\n');
+console.log('🔍 Testing Convex Connection...\n');
 
-  // Try both environment variable names
-  const convexUrl = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL;
+// Test the Convex URL directly
+const convexUrl = 'https://hallowed-trout-823.convex.cloud';
+
+const options = {
+  hostname: 'hallowed-trout-823.convex.cloud',
+  port: 443,
+  path: '/',
+  method: 'GET'
+};
+
+const req = https.request(options, (res) => {
+  console.log(`Convex Status: ${res.statusCode}`);
   
-  if (!convexUrl) {
-    console.error('❌ No Convex URL found in environment variables!');
-    console.log('\nMissing both:');
-    console.log('- CONVEX_URL');
-    console.log('- NEXT_PUBLIC_CONVEX_URL');
-    process.exit(1);
+  if (res.statusCode === 200 || res.statusCode === 404) {
+    console.log('✅ Convex deployment is accessible');
+  } else {
+    console.log('❌ Convex deployment might have issues');
   }
+  
+  console.log('\n📋 Next Steps:');
+  console.log('1. Check Netlify function logs for detailed error messages');
+  console.log('2. Verify environment variables in Netlify dashboard');
+  console.log('3. Test registration locally to ensure code works');
+  
+  console.log('\n🔧 To check Netlify logs:');
+  console.log('- Go to: https://app.netlify.com/projects/beaver-task');
+  console.log('- Navigate to Functions → Function logs');
+  console.log('- Look for ___netlify-handler function logs');
+});
 
-  console.log(`📡 Attempting to connect to: ${convexUrl}`);
+req.on('error', (error) => {
+  console.error('❌ Convex connection failed:', error.message);
+});
 
-  try {
-    const client = new ConvexHttpClient(convexUrl);
-    
-    // Try to make a simple query
-    console.log('\n🔄 Testing query...');
-    const result = await client.query('users:getUserByEmail')({ email: 'test@example.com' });
-    
-    console.log('\n✅ Convex connection successful!');
-    console.log('Query result:', result);
-    
-  } catch (error) {
-    console.error('\n❌ Convex connection failed!');
-    console.error('Error details:', error);
-    
-    // Additional debugging info
-    console.log('\n🔍 Debug Information:');
-    console.log('- Node version:', process.version);
-    console.log('- Environment:', process.env.NODE_ENV);
-    console.log('- CONVEX_URL set:', !!process.env.CONVEX_URL);
-    console.log('- NEXT_PUBLIC_CONVEX_URL set:', !!process.env.NEXT_PUBLIC_CONVEX_URL);
-    
-    process.exit(1);
-  }
-}
-
-// Run the test
-testConvexConnection();
+req.end();

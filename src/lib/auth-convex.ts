@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { compare } from "bcrypt"
+import { compare } from "bcryptjs"
 import { convexHttp } from "@/lib/convex"
 import { api } from "../../convex/_generated/api"
 
