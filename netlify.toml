@@ -33,3 +33,25 @@
   for = "/images/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+# NextAuth.js redirects for proper authentication flow
+[[redirects]]
+  from = "/api/auth/signin"
+  to = "/login"
+  status = 302
+
+[[redirects]]
+  from = "/api/auth/signout"
+  to = "/login"
+  status = 302
+
+[[redirects]]
+  from = "/api/auth/error"
+  to = "/login"
+  status = 302
+
+# Handle NextAuth.js callback URLs
+[[redirects]]
+  from = "/api/auth/callback/*"
+  to = "/api/auth/callback/:splat"
+  status = 200

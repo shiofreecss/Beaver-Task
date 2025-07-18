@@ -37,6 +37,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
     signOut: "/login",
+    error: "/login", // Redirect to login page on auth errors
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -48,6 +49,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("Missing credentials")
           return null
         }
 
@@ -58,21 +60,25 @@ export const authOptions: NextAuthOptions = {
           }) as UserWithPassword | null
 
           if (!user) {
+            console.log("User not found:", credentials.email)
             return null
           }
 
           const isPasswordValid = await compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
+            console.log("Invalid password for user:", credentials.email)
             return null
           }
 
+          console.log("User authenticated successfully:", user.email)
           return {
             id: user._id,
             email: user.email,
             name: user.name,
           }
         } catch (error) {
+          console.error("Auth error:", error)
           return null
         }
       }
@@ -99,12 +105,26 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
+      // Log redirect information for debugging
+      console.log("NextAuth redirect:", { url, baseUrl })
+      
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        const redirectUrl = `${baseUrl}${url}`
+        console.log("Redirecting to:", redirectUrl)
+        return redirectUrl
+      }
+      
+      // Handle same-origin URLs
+      if (new URL(url).origin === baseUrl) {
+        console.log("Redirecting to same origin:", url)
+        return url
+      }
+      
+      // Default to base URL
+      console.log("Redirecting to base URL:", baseUrl)
       return baseUrl
     }
   },
-  debug: process.env.NODE_ENV === 'development' && process.env.NEXTAUTH_DEBUG === 'true',
+  debug: process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_DEBUG === 'true',
 } 
