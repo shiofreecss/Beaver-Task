@@ -13,7 +13,6 @@
 
 [functions]
   node_bundler = "esbuild"
-  directory = "netlify/functions"
 
 # Security headers
 [[headers]]
@@ -36,11 +35,7 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
 
-# Handle registration with Netlify function
-[[redirects]]
-  from = "/api/auth/register"
-  to = "/.netlify/functions/register"
-  status = 200
+# Let Next.js plugin handle all API routes
 
 # Handle NextAuth.js pages (keep these as they're for UI pages, not API routes)
 [[redirects]]
