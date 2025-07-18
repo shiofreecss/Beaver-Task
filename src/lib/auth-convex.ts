@@ -91,9 +91,16 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
           };
         } catch (error) {
+          const errorMessage = error && typeof error === 'object' && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : String(error);
+          const errorStack = error && typeof error === 'object' && 'stack' in error
+            ? String((error as { stack: unknown }).stack)
+            : undefined;
+          
           console.error("Auth error:", {
-            message: error.message,
-            stack: error.stack,
+            message: errorMessage,
+            stack: errorStack,
             convexUrl: process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL
           });
           throw error; // Let NextAuth handle the error
