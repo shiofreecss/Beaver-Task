@@ -53,7 +53,7 @@ This guide explains how to deploy the Beaver Task Manager to Netlify with Convex
 2. Click "New site from Git"
 3. Connect your repository
 4. Configure build settings:
-   - Build command: `npm run build`
+   - Build command: `npx convex deploy --cmd 'npm run build'`
    - Publish directory: `.next`
 5. Add environment variables in Netlify dashboard:
    - `NEXTAUTH_SECRET`
