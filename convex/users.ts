@@ -20,7 +20,8 @@ export const getUserByEmail = query({
       return user;
     } catch (error) {
       console.error('Error in getUserByEmail:', error);
-      throw new ConvexError(`Failed to get user: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new ConvexError(`Failed to get user: ${errorMessage}`);
     }
   },
 });
