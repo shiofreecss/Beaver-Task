@@ -29,6 +29,15 @@ declare module "next-auth/jwt" {
   }
 }
 
+// Get the base URL for production deployment
+const getBaseUrl = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // Use Netlify URL or custom domain
+    return process.env.NEXTAUTH_URL || process.env.NETLIFY_URL || 'https://your-app.netlify.app'
+  }
+  return process.env.NEXTAUTH_URL || 'http://localhost:3000'
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -37,7 +46,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
     signOut: "/login",
-    error: "/login", // Redirect to login page on auth errors
+    error: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -103,7 +112,7 @@ export const authOptions: NextAuthOptions = {
             stack: errorStack,
             convexUrl: process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL
           });
-          throw error; // Let NextAuth handle the error
+          throw error;
         }
       }
     })
@@ -129,36 +138,28 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async redirect({ url, baseUrl }) {
-        // Handle Netlify deployment redirects
-        const productionUrl = process.env.NODE_ENV === 'production'
-          ? (process.env.NEXTAUTH_URL || process.env.NETLIFY_URL || baseUrl)
-          : baseUrl;
-        
-        console.log("NextAuth redirect:", { url, baseUrl, productionUrl })
-        
-        // Handle relative URLs
-        if (url.startsWith("/")) {
-          const redirectUrl = `${productionUrl}${url}`
-          console.log("Redirecting to:", redirectUrl)
-          return redirectUrl
-        }
-        
-        // Handle same-origin URLs
-        try {
-          const urlObj = new URL(url);
-          const baseUrlObj = new URL(productionUrl);
-          if (urlObj.origin === baseUrlObj.origin) {
-            console.log("Redirecting to same origin:", url)
-            return url
-          }
-        } catch (e) {
-          // If URL parsing fails, use production URL
-        }
-        
-        // Default to production URL
-        console.log("Redirecting to production URL:", productionUrl)
-        return productionUrl
+      // Handle Netlify deployment redirects
+      const productionUrl = getBaseUrl();
+      
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        return `${productionUrl}${url}`;
       }
+      
+      // Handle same-origin URLs
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(productionUrl);
+        if (urlObj.origin === baseUrlObj.origin) {
+          return url;
+        }
+      } catch (e) {
+        // If URL parsing fails, use base URL
+      }
+      
+      // Default to base URL
+      return productionUrl;
+    }
   },
   debug: process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_DEBUG === 'true',
-} 
+}
