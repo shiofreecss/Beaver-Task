@@ -1,13 +1,32 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Poppins, Outfit, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { Providers } from '@/components/providers'
 import { SessionProvider } from '@/components/session-provider'
 import { CleanupProvider } from '@/components/cleanup-provider'
 
+// Font options - choose one that looks best for your app
 const inter = Inter({ subsets: ['latin'] })
+const poppins = Poppins({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins'
+})
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-outfit'
+})
+const plusJakartaSans = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-plus-jakarta'
+})
+
+// Choose your preferred font here
+const font = plusJakartaSans // Modern, clean, great for productivity apps
 
 export const metadata: Metadata = {
   title: 'Beaver Task',
@@ -48,7 +67,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000" />
         <meta name="color-scheme" content="dark light" />
       </head>
-      <body className={inter.className}>
+      <body className={font.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
