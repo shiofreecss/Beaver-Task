@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx convex deploy && next build",
-    "build:prod": "cross-env NODE_ENV=production npm run prisma:generate && npx convex deploy && next build # Fixed for Netlify",
+    "build:prod": "cross-env NODE_ENV=production npm run prisma:generate && npx convex deploy && next build",
     "build:windows": "set NODE_ENV=production && npm run prisma:generate && npx convex deploy && next build",
     "build:netlify": "npx convex deploy --cmd 'npm run build'",
     "start": "next start",
