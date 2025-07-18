@@ -9,6 +9,7 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
   NETLIFY = "true"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [functions]
   node_bundler = "esbuild"
