@@ -43,6 +43,9 @@ interface PomodoroStore {
   fetchSessions: () => Promise<void>
   deleteSession: (id: string) => Promise<void>
   getTodayFocusTime: () => number // Returns focus time in hours
+  
+  // Store management
+  resetStore: () => void
 }
 
 // Helper to get session duration in seconds
