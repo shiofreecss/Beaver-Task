@@ -91,24 +91,54 @@ export function LoginForm() {
         redirect: false,
       })
 
-      if (result?.error) {
-        console.error('Login error:', result.error)
+      // Handle case where result is undefined (connection failure)
+      if (!result) {
+        console.error('Login failed: No response from authentication service')
         toast({
-          title: 'Error',
-          description: 'Invalid email or password',
+          title: 'Connection Error',
+          description: 'Unable to connect to authentication service. Please try again.',
           variant: 'destructive',
         })
         return
       }
 
-      if (result?.ok) {
+      if (result.error) {
+        console.error('Login error:', result.error)
+        let errorMessage = 'Invalid email or password'
+        
+        // Check for specific error messages
+        if (result.error.includes('Convex connection failed')) {
+          errorMessage = 'Unable to connect to database. Please try again later.'
+        } else if (result.error.includes('Convex URL not configured')) {
+          errorMessage = 'Authentication service misconfigured. Please contact support.'
+        }
+        
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (result.ok) {
         toast({
           title: 'Success',
           description: 'Logged in successfully!',
         })
-        // Immediate redirect for better UX
-        router.push('/')
-        router.refresh()
+        try {
+          // Wait for navigation to complete
+          await router.push('/')
+          await router.refresh()
+        } catch (error) {
+          console.error('Navigation error:', error)
+          // Still logged in, but navigation failed
+          toast({
+            title: 'Warning',
+            description: 'Logged in but navigation failed. Please try refreshing the page.',
+            variant: 'destructive',
+          })
+        }
       }
     } catch (error) {
       console.error('Login exception:', error)

@@ -5,10 +5,23 @@ import { ConvexError } from "convex/values";
 export const getUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
+    try {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .first();
+      
+      if (!user) {
+        console.log(`User not found for email: ${args.email}`);
+        return null;
+      }
+
+      console.log(`Found user: ${user._id} for email: ${args.email}`);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByEmail:', error);
+      throw new ConvexError(`Failed to get user: ${error.message}`);
+    }
   },
 });
 

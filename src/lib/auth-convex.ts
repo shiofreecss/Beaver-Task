@@ -54,32 +54,49 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          console.log("Attempting to authenticate user:", credentials.email);
+          
+          // Verify Convex connection
+          if (!process.env.CONVEX_URL && !process.env.NEXT_PUBLIC_CONVEX_URL) {
+            throw new Error("Convex URL not configured");
+          }
+
           // Use Convex to get user
-          const user = await convexHttp.query(api.users.getUserByEmail, {
-            email: credentials.email
-          }) as UserWithPassword | null
+          let user;
+          try {
+            user = await convexHttp.query(api.users.getUserByEmail, {
+              email: credentials.email
+            }) as UserWithPassword | null;
+          } catch (convexError) {
+            console.error("Convex query failed:", convexError);
+            throw new Error(`Convex connection failed: ${convexError.message}`);
+          }
 
           if (!user) {
-            console.log("User not found:", credentials.email)
-            return null
+            console.log("User not found:", credentials.email);
+            return null;
           }
 
-          const isPasswordValid = await compare(credentials.password, user.password)
+          const isPasswordValid = await compare(credentials.password, user.password);
 
           if (!isPasswordValid) {
-            console.log("Invalid password for user:", credentials.email)
-            return null
+            console.log("Invalid password for user:", credentials.email);
+            return null;
           }
 
-          console.log("User authenticated successfully:", user.email)
+          console.log("User authenticated successfully:", user.email);
           return {
             id: user._id,
             email: user.email,
             name: user.name,
-          }
+          };
         } catch (error) {
-          console.error("Auth error:", error)
-          return null
+          console.error("Auth error:", {
+            message: error.message,
+            stack: error.stack,
+            convexUrl: process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL
+          });
+          throw error; // Let NextAuth handle the error
         }
       }
     })
