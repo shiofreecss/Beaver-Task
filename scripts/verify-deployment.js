@@ -1,102 +1,189 @@
 #!/usr/bin/env node
 
-/**
- * Deployment Verification Script
- * 
- * This script verifies that the application is deployed correctly
- * and all critical features are working, especially authentication.
- */
-
 const https = require('https');
 const http = require('http');
 
-// Get the site URL from command line or environment
-const siteUrl = process.argv[2] || process.env.NETLIFY_URL || 'https://task.beaver.foundation';
+console.log('🔍 Verifying Netlify Deployment...\n');
 
-console.log('🔍 Verifying deployment...\n');
-console.log(`📍 Site URL: ${siteUrl}\n`);
+// Get the deployment URL from environment or use a default
+const deploymentUrl = process.env.NETLIFY_URL || process.env.URL || process.argv[2];
 
-async function checkUrl(url, description) {
+if (!deploymentUrl) {
+  console.log('❌ No deployment URL provided');
+  console.log('Usage: node scripts/verify-deployment.js [URL]');
+  console.log('Or set NETLIFY_URL environment variable');
+  process.exit(1);
+}
+
+console.log(`🌐 Testing deployment at: ${deploymentUrl}\n`);
+
+// Test endpoints
+const endpoints = [
+  { path: '/', name: 'Home Page' },
+  { path: '/login', name: 'Login Page' },
+  { path: '/api/auth/session', name: 'NextAuth Session' },
+  { path: '/api/auth/providers', name: 'NextAuth Providers' },
+];
+
+async function testEndpoint(url, name) {
   return new Promise((resolve) => {
     const client = url.startsWith('https') ? https : http;
     
     const req = client.get(url, (res) => {
-      console.log(`✅ ${description}: ${res.statusCode}`);
-      resolve({ status: res.statusCode, ok: res.statusCode < 400 });
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        const status = res.statusCode;
+        const contentType = res.headers['content-type'] || '';
+        
+        let result = {
+          name,
+          url,
+          status,
+          contentType,
+          isJson: contentType.includes('application/json'),
+          isHtml: contentType.includes('text/html'),
+          data: data.substring(0, 200) // First 200 chars for debugging
+        };
+        
+        resolve(result);
+      });
     });
     
     req.on('error', (err) => {
-      console.log(`❌ ${description}: ${err.message}`);
-      resolve({ status: 0, ok: false, error: err.message });
+      resolve({
+        name,
+        url,
+        error: err.message,
+        status: 'ERROR'
+      });
     });
     
     req.setTimeout(10000, () => {
-      console.log(`⏰ ${description}: Timeout`);
       req.destroy();
-      resolve({ status: 0, ok: false, error: 'Timeout' });
+      resolve({
+        name,
+        url,
+        error: 'Timeout',
+        status: 'TIMEOUT'
+      });
     });
   });
 }
 
-async function verifyDeployment() {
-  const checks = [
-    { url: siteUrl, description: 'Main site' },
-    { url: `${siteUrl}/login`, description: 'Login page' },
-    { url: `${siteUrl}/api/auth/signin`, description: 'NextAuth signin' },
-    { url: `${siteUrl}/api/auth/callback/credentials`, description: 'NextAuth callback' },
-    { url: `${siteUrl}/_next/static`, description: 'Static assets' },
-  ];
-
-  console.log('📋 Running health checks...\n');
-
-  let allPassed = true;
+async function runTests() {
+  console.log('🧪 Running endpoint tests...\n');
+  
   const results = [];
-
-  for (const check of checks) {
-    const result = await checkUrl(check.url, check.description);
-    results.push({ ...check, ...result });
-    if (!result.ok) allPassed = false;
-  }
-
-  console.log('\n' + '='.repeat(50));
   
-  if (allPassed) {
-    console.log('\n🎉 All checks passed! Deployment is successful.');
-    console.log('\n✅ Next steps:');
-    console.log('1. Test login functionality');
-    console.log('2. Verify user registration');
-    console.log('3. Check task management features');
-    console.log('4. Test all major app features');
+  for (const endpoint of endpoints) {
+    const url = `${deploymentUrl}${endpoint.path}`;
+    console.log(`Testing ${endpoint.name}...`);
+    
+    const result = await testEndpoint(url, endpoint.name);
+    results.push(result);
+    
+    // Display result immediately
+    if (result.error) {
+      console.log(`❌ ${endpoint.name}: ${result.error}`);
+    } else if (result.status === 200) {
+      if (result.isJson) {
+        console.log(`✅ ${endpoint.name}: JSON response (${result.status})`);
+      } else if (result.isHtml) {
+        console.log(`⚠️  ${endpoint.name}: HTML response (${result.status}) - Expected JSON for API endpoints`);
+      } else {
+        console.log(`✅ ${endpoint.name}: Response (${result.status})`);
+      }
+    } else {
+      console.log(`❌ ${endpoint.name}: HTTP ${result.status}`);
+    }
+    
+    console.log('');
+  }
+  
+  // Summary
+  console.log('📊 Test Summary:');
+  console.log('='.repeat(50));
+  
+  let allGood = true;
+  
+  results.forEach(result => {
+    const status = result.error ? '❌ ERROR' : 
+                   result.status === 200 ? '✅ OK' : 
+                   `❌ HTTP ${result.status}`;
+    
+    console.log(`${status} ${result.name}`);
+    
+    if (result.error) {
+      console.log(`   Error: ${result.error}`);
+      allGood = false;
+    } else if (result.status !== 200) {
+      console.log(`   Status: ${result.status}`);
+      allGood = false;
+    } else if (result.name.includes('Session') && !result.isJson) {
+      console.log(`   Issue: Expected JSON but got ${result.contentType}`);
+      console.log(`   Data preview: ${result.data}`);
+      allGood = false;
+    }
+  });
+  
+  // Specific checks for NextAuth
+  const sessionResult = results.find(r => r.name.includes('Session'));
+  if (sessionResult && !sessionResult.error && sessionResult.status === 200) {
+    if (sessionResult.isJson) {
+      console.log('\n✅ NextAuth session endpoint is working correctly!');
+    } else {
+      console.log('\n❌ NextAuth session endpoint is returning HTML instead of JSON');
+      console.log('This is the main issue you reported.');
+      console.log('\n🔧 Possible fixes:');
+      console.log('1. Check your netlify.toml configuration');
+      console.log('2. Verify environment variables are set correctly');
+      console.log('3. Ensure the NextAuth plugin is properly configured');
+      console.log('4. Check if there are any redirect rules interfering');
+    }
+  }
+  
+  // Environment check
+  console.log('\n🔧 Environment Check:');
+  const envVars = [
+    'NEXTAUTH_SECRET',
+    'NEXTAUTH_URL',
+    'NEXT_PUBLIC_CONVEX_URL',
+    'CONVEX_DEPLOYMENT'
+  ];
+  
+  envVars.forEach(varName => {
+    const value = process.env[varName];
+    const status = value ? '✅' : '❌';
+    console.log(`${status} ${varName}: ${value ? 'Set' : 'Missing'}`);
+    
+    if (!value) {
+      allGood = false;
+    }
+  });
+  
+  if (allGood) {
+    console.log('\n🎉 All tests passed! Your deployment should be working correctly.');
   } else {
-    console.log('\n🚨 Some checks failed! Please investigate:');
-    
-    const failedChecks = results.filter(r => !r.ok);
-    failedChecks.forEach(check => {
-      console.log(`   - ${check.description}: ${check.error || `Status ${check.status}`}`);
-    });
-    
-    console.log('\n🔧 Troubleshooting steps:');
-    console.log('1. Check Netlify function logs');
-    console.log('2. Verify environment variables');
-    console.log('3. Check for build errors');
-    console.log('4. Ensure all dependencies are installed');
-    
-    process.exit(1);
+    console.log('\n🚨 Some issues were found. Please check the details above.');
+    console.log('\n📝 Next steps:');
+    console.log('1. Fix any missing environment variables');
+    console.log('2. Check your Netlify configuration');
+    console.log('3. Redeploy after making changes');
+    console.log('4. Run this script again to verify the fix');
   }
-
-  // Authentication-specific checks
-  console.log('\n🔐 Authentication verification:');
-  console.log('1. Visit the login page');
-  console.log('2. Try logging in with valid credentials');
-  console.log('3. Should redirect to dashboard, not /api/auth/error');
-  console.log('4. Check that session persists after login');
   
-  console.log('\n📝 If authentication fails:');
-  console.log('- Run: npm run verify-netlify-env');
-  console.log('- Check Netlify environment variables');
-  console.log('- Verify NEXTAUTH_URL and NEXTAUTH_SECRET');
-  console.log('- Check Netlify function logs for errors');
+  return allGood;
 }
 
-// Run verification
-verifyDeployment().catch(console.error);
+// Run the tests
+runTests().then(success => {
+  process.exit(success ? 0 : 1);
+}).catch(error => {
+  console.error('Test failed with error:', error);
+  process.exit(1);
+});

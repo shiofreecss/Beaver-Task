@@ -1,105 +1,133 @@
 #!/usr/bin/env node
 
-/**
- * Netlify Environment Variables Verification Script
- * 
- * This script checks if all required environment variables are set
- * for proper NextAuth.js authentication on Netlify.
- * 
- * Run this script before deploying to ensure authentication works correctly.
- */
+const fs = require('fs');
+const path = require('path');
 
+console.log('🔍 Verifying Netlify Environment Configuration...\n');
+
+// Check if we're in a Netlify environment
+const isNetlify = process.env.NETLIFY === 'true';
+console.log(`📍 Environment: ${isNetlify ? 'Netlify' : 'Local'}`);
+
+// Required environment variables for NextAuth
 const requiredEnvVars = [
   'NEXTAUTH_SECRET',
   'NEXTAUTH_URL',
-  'CONVEX_DEPLOY_KEY',
-  'CONVEX_URL',
-  'DATABASE_URL',
-  'EMAIL_SERVER_HOST',
-  'EMAIL_SERVER_PORT',
-  'EMAIL_SERVER_USER',
-  'EMAIL_SERVER_PASSWORD',
-  'EMAIL_FROM'
+  'NEXT_PUBLIC_CONVEX_URL',
+  'CONVEX_DEPLOYMENT'
 ];
 
-const optionalEnvVars = [
-  'NEXTAUTH_DEBUG',
-  'NODE_ENV'
-];
+console.log('\n📋 Required Environment Variables:');
+let allPresent = true;
 
-function checkEnvVars() {
-  console.log('🔍 Checking Netlify environment variables...\n');
+requiredEnvVars.forEach(varName => {
+  const value = process.env[varName];
+  const isPresent = !!value;
+  const status = isPresent ? '✅' : '❌';
   
-  let allRequiredSet = true;
-  const missingVars = [];
-  const setVars = [];
+  console.log(`${status} ${varName}: ${isPresent ? 'Set' : 'Missing'}`);
   
-  // Check required variables
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      missingVars.push(envVar);
-      allRequiredSet = false;
-      console.log(`❌ Missing: ${envVar}`);
-    } else {
-      setVars.push(envVar);
-      console.log(`✅ Set: ${envVar}`);
-    }
+  if (isPresent && varName === 'NEXTAUTH_URL') {
+    console.log(`   Value: ${value}`);
   }
   
-  // Check optional variables
-  console.log('\n📋 Optional variables:');
-  for (const envVar of optionalEnvVars) {
-    if (process.env[envVar]) {
-      console.log(`✅ Set: ${envVar} = ${envVar === 'NEXTAUTH_SECRET' ? '[HIDDEN]' : process.env[envVar]}`);
-    } else {
-      console.log(`⚠️  Not set: ${envVar} (optional)`);
-    }
+  if (!isPresent) {
+    allPresent = false;
   }
-  
-  console.log('\n' + '='.repeat(50));
-  
-  if (!allRequiredSet) {
-    console.log('\n🚨 CRITICAL ISSUE: Missing required environment variables!');
-    console.log('\nMissing variables:');
-    missingVars.forEach(varName => console.log(`  - ${varName}`));
-    
-    console.log('\n📝 To fix this:');
-    console.log('1. Go to your Netlify dashboard');
-    console.log('2. Navigate to Site settings > Environment variables');
-    console.log('3. Add the missing variables listed above');
-    console.log('4. Redeploy your site');
-    
-    console.log('\n🔧 Quick setup commands:');
-    console.log('npm run setup:netlify-env');
-    
-    process.exit(1);
+});
+
+// Check for common issues
+console.log('\n🔧 Common Issues Check:');
+
+// Check NEXTAUTH_URL format
+const nextAuthUrl = process.env.NEXTAUTH_URL;
+if (nextAuthUrl) {
+  try {
+    new URL(nextAuthUrl);
+    console.log('✅ NEXTAUTH_URL is a valid URL');
+  } catch (e) {
+    console.log('❌ NEXTAUTH_URL is not a valid URL');
+    allPresent = false;
+  }
+} else {
+  console.log('❌ NEXTAUTH_URL is missing');
+  allPresent = false;
+}
+
+// Check if NEXTAUTH_SECRET is strong enough
+const secret = process.env.NEXTAUTH_SECRET;
+if (secret) {
+  if (secret.length >= 32) {
+    console.log('✅ NEXTAUTH_SECRET is sufficiently long');
   } else {
-    console.log('\n🎉 All required environment variables are set!');
-    console.log('\n✅ Your Netlify deployment should work correctly.');
+    console.log('⚠️  NEXTAUTH_SECRET might be too short (recommend 32+ characters)');
+  }
+} else {
+  console.log('❌ NEXTAUTH_SECRET is missing');
+  allPresent = false;
+}
+
+// Check Convex URL
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (convexUrl) {
+  if (convexUrl.includes('convex.cloud')) {
+    console.log('✅ NEXT_PUBLIC_CONVEX_URL appears to be a valid Convex URL');
+  } else {
+    console.log('⚠️  NEXT_PUBLIC_CONVEX_URL might not be a valid Convex URL');
+  }
+} else {
+  console.log('❌ NEXT_PUBLIC_CONVEX_URL is missing');
+  allPresent = false;
+}
+
+// Netlify-specific checks
+if (isNetlify) {
+  console.log('\n🌐 Netlify-Specific Checks:');
+  
+  const netlifyUrl = process.env.URL || process.env.DEPLOY_PRIME_URL;
+  if (netlifyUrl) {
+    console.log(`✅ Netlify URL detected: ${netlifyUrl}`);
     
-    // Additional checks
-    console.log('\n🔍 Additional checks:');
-    
-    // Check NEXTAUTH_URL format
-    const nextAuthUrl = process.env.NEXTAUTH_URL;
-    if (nextAuthUrl) {
-      if (!nextAuthUrl.startsWith('https://')) {
-        console.log('⚠️  Warning: NEXTAUTH_URL should use HTTPS in production');
-      }
-      if (nextAuthUrl.includes('localhost')) {
-        console.log('⚠️  Warning: NEXTAUTH_URL should not use localhost in production');
-      }
+    // Check if NEXTAUTH_URL matches Netlify URL
+    if (nextAuthUrl && nextAuthUrl !== netlifyUrl) {
+      console.log(`⚠️  NEXTAUTH_URL (${nextAuthUrl}) doesn't match Netlify URL (${netlifyUrl})`);
+      console.log('   Consider updating NEXTAUTH_URL to match your Netlify URL');
     }
-    
-    // Check NEXTAUTH_SECRET strength
-    const secret = process.env.NEXTAUTH_SECRET;
-    if (secret && secret.length < 32) {
-      console.log('⚠️  Warning: NEXTAUTH_SECRET should be at least 32 characters long');
-    }
-    
-    console.log('\n🚀 Ready for deployment!');
+  } else {
+    console.log('❌ Netlify URL not detected');
   }
 }
 
-// Run the check
-checkEnvVars(); 
+// Summary
+console.log('\n📊 Summary:');
+if (allPresent) {
+  console.log('✅ All required environment variables are present');
+  console.log('🎉 Your environment should be ready for deployment!');
+} else {
+  console.log('❌ Some required environment variables are missing');
+  console.log('🔧 Please set the missing variables in your Netlify dashboard');
+}
+
+// Instructions for fixing
+if (!allPresent) {
+  console.log('\n🔧 How to fix:');
+  console.log('1. Go to your Netlify dashboard');
+  console.log('2. Navigate to Site settings > Environment variables');
+  console.log('3. Add the missing variables:');
+  
+  requiredEnvVars.forEach(varName => {
+    if (!process.env[varName]) {
+      console.log(`   - ${varName}: [set appropriate value]`);
+    }
+  });
+  
+  console.log('\n4. Redeploy your site after adding the variables');
+}
+
+console.log('\n📝 Additional Notes:');
+console.log('- NEXTAUTH_SECRET should be a random string (32+ characters)');
+console.log('- NEXTAUTH_URL should match your deployed site URL');
+console.log('- NEXT_PUBLIC_CONVEX_URL should be your Convex production URL');
+console.log('- CONVEX_DEPLOYMENT should be your Convex deployment name');
+
+process.exit(allPresent ? 0 : 1); 

@@ -131,7 +131,7 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
         // Handle Netlify deployment redirects
         const productionUrl = process.env.NODE_ENV === 'production'
-          ? (process.env.NEXTAUTH_URL || process.env.NETLIFY_URL || baseUrl)
+          ? (process.env.NEXTAUTH_URL || process.env.NETLIFY_URL || process.env.VERCEL_URL || baseUrl)
           : baseUrl;
         
         console.log("NextAuth redirect:", { url, baseUrl, productionUrl })

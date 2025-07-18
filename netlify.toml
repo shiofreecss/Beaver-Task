@@ -34,7 +34,28 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
 
-# NextAuth.js redirects for proper authentication flow
+# Critical: Handle NextAuth.js API routes properly
+[[redirects]]
+  from = "/api/auth/*"
+  to = "/.netlify/functions/___netlify-handler"
+  status = 200
+  force = true
+
+# Handle NextAuth.js callback URLs
+[[redirects]]
+  from = "/api/auth/callback/*"
+  to = "/.netlify/functions/___netlify-handler"
+  status = 200
+  force = true
+
+# Handle all other API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/___netlify-handler"
+  status = 200
+  force = true
+
+# Handle NextAuth.js pages
 [[redirects]]
   from = "/api/auth/signin"
   to = "/login"
@@ -49,9 +70,3 @@
   from = "/api/auth/error"
   to = "/login"
   status = 302
-
-# Handle NextAuth.js callback URLs
-[[redirects]]
-  from = "/api/auth/callback/*"
-  to = "/api/auth/callback/:splat"
-  status = 200

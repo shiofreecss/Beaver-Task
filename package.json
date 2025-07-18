@@ -18,7 +18,8 @@
     "setup:netlify-env": "node scripts/setup-netlify-env.js",
     "deploy:netlify": "npm run build:prod && netlify deploy --prod --dir=.next",
     "deploy:verify": "npm run deploy:netlify && npm run verify-deployment",
-    "predeploy:netlify": "npm run verify-netlify-env"
+    "predeploy:netlify": "npm run verify-netlify-env",
+    "fix:nextauth": "npm run setup:netlify-env && npm run verify-netlify-env"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.18",
