@@ -1,4 +1,6 @@
-# Beaver Task Manager - Current Features
+# Beaver Task Manager v1.0.0 - Features
+
+**🎉 Version 1.0.0** - All features listed below are fully implemented, tested, and production-ready.
 
 ## 🏢 Organization Management
 
@@ -172,4 +174,4 @@
 - ✅ Comprehensive task and time management
 - ✅ Integrated productivity workflow
 
-**Start using the application immediately at [http://localhost:3001](http://localhost:3001) after running `npm run dev` and `npx convex dev`.** 
+**Start using the application immediately at [http://localhost:3000](http://localhost:3000) after running `npm run dev` and `npx convex dev`.** 

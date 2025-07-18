@@ -1,6 +1,8 @@
-# 🦫 Beaver Task Manager
+# 🦫 Beaver Task Manager v1.0.0
 
 A comprehensive project management application with organizations, projects, tasks, notes, habit tracking, and Pomodoro timer functionality. Built with Next.js 14, TypeScript, Tailwind CSS, and Convex.
+
+**🎉 Version 1.0.0 Released!** - Production-ready with all core features implemented and tested.
 
 ## 🚀 Features
 
@@ -98,7 +100,7 @@ A comprehensive project management application with organizations, projects, tas
    ```
 
 5. **Open your browser**
-   Navigate to [http://localhost:3001](http://localhost:3001)
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🎯 How to Use
 
@@ -169,7 +171,7 @@ A comprehensive project management application with organizations, projects, tas
 ## 🔧 Development
 
 ### Available Scripts
-- `npm run dev` - Start development server on port 3001
+- `npm run dev` - Start development server on port 3000
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
