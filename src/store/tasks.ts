@@ -77,6 +77,7 @@ interface TaskState {
   deleteColumn: (id: string) => Promise<void>
   fetchColumns: () => Promise<void>
   moveTask: (taskId: string, columnId: string) => Promise<void>
+  resetStore: () => void
 }
 
 // Default columns for new projects
@@ -351,30 +352,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  moveTask: async (taskId, columnId) => {
-    try {
-      const response = await fetch('/api/tasks-convex/move', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, columnId })
-      })
+        moveTask: async (taskId, columnId) => {
+        try {
+          const response = await fetch('/api/tasks-convex/move', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, columnId })
+          })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Move task error:', response.status, errorText)
-        throw new Error(`Failed to move task: ${response.status}`)
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('Move task error:', response.status, errorText)
+            throw new Error(`Failed to move task: ${response.status}`)
+          }
+
+          const updatedTask = await response.json()
+          
+          set((state) => ({
+            tasks: state.tasks.map((task) =>
+              task.id === taskId ? { ...task, ...updatedTask } : task
+            )
+          }))
+        } catch (error) {
+          console.error('Error moving task:', error)
+          throw error
+        }
+      },
+
+      resetStore: () => {
+        set({
+          tasks: [],
+          columns: []
+        })
       }
-
-      const updatedTask = await response.json()
-      
-      set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === taskId ? { ...task, ...updatedTask } : task
-        )
-      }))
-    } catch (error) {
-      console.error('Error moving task:', error)
-      throw error
-    }
-  }
-})) 
+    })) 

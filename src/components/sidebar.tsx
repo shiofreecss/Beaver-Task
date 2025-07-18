@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { ProfileSettingsModal } from '@/components/settings/profile-settings-modal'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ui/use-toast'
+import { cleanupService } from '@/lib/cleanup-service'
 
 interface SidebarProps {
   activeTab: string
@@ -57,9 +58,8 @@ export function Sidebar({ activeTab, onTabChange, isMobileOpen = false, onMobile
 
   const handleLogout = async () => {
     try {
-      // Clear any local state or cached data
-      localStorage.clear()
-      sessionStorage.clear()
+      // Perform cleanup first (stop music, timers, etc.)
+      await cleanupService.performLogoutCleanup()
       
       // Sign out with proper error handling
       const result = await signOut({ 
@@ -69,6 +69,7 @@ export function Sidebar({ activeTab, onTabChange, isMobileOpen = false, onMobile
       
       console.log('Logout result:', result)
       
+      // Show success message
       toast({
         title: 'Success',
         description: 'Logged out successfully!',
@@ -79,14 +80,16 @@ export function Sidebar({ activeTab, onTabChange, isMobileOpen = false, onMobile
       router.refresh()
     } catch (error) {
       console.error('Logout error:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to log out. Please try again.',
-        variant: 'destructive',
-      })
       
-      // Even if signOut fails, try to redirect to login
-      router.push('/login')
+      // Even if signOut fails, still try to redirect to login
+      // The error might be from cleanup or signOut, but we want to ensure user gets logged out
+      try {
+        router.push('/login')
+      } catch (navigationError) {
+        console.error('Navigation error:', navigationError)
+        // Last resort - force page reload
+        window.location.href = '/login'
+      }
     }
   }
 

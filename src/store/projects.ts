@@ -41,6 +41,7 @@ interface ProjectState {
   deleteProject: (id: string) => Promise<void>
   getProjectById: (id: string) => Project | undefined
   fetchProjects: (force?: boolean) => Promise<void>
+  resetStore: () => void
 }
 
 // Cache duration: 5 minutes
@@ -176,5 +177,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       console.error('Error fetching projects:', error)
       throw error
     }
+  },
+
+  resetStore: () => {
+    set({
+      projects: [],
+      lastFetchTime: null
+    })
   }
 })) 

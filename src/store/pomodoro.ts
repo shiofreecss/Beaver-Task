@@ -266,6 +266,15 @@ export const usePomodoroStore = create<PomodoroStore>()(
           .reduce((total, session) => {
             return total + (session.duration / 60)
           }, 0)
+      },
+
+      resetStore: () => {
+        set({
+          sessions: [],
+          activeTimer: null,
+          isLoading: false,
+          error: null
+        })
       }
     }),
     {

@@ -22,6 +22,7 @@ interface NoteState {
   getNotesByProject: (projectId: string) => Note[]
   getNotesByTask: (taskId: string) => Note[]
   fetchNotes: () => Promise<void>
+  resetStore: () => void
 }
 
 export const useNoteStore = create<NoteState>((set, get) => ({
@@ -112,5 +113,11 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       console.error('Error fetching notes:', error)
       throw error
     }
+  },
+
+  resetStore: () => {
+    set({
+      notes: []
+    })
   }
 })) 

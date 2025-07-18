@@ -5,14 +5,15 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { Providers } from '@/components/providers'
 import { SessionProvider } from '@/components/session-provider'
+import { CleanupProvider } from '@/components/cleanup-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Beaver Task - Privacy-first task management',
+  title: 'Beaver Task',
   description: 'Organize your tasks, projects, and habits with confidence. Privacy-first task management that helps you stay productive.',
   keywords: 'task management, productivity, habits, projects, privacy-first',
-  authors: [{ name: 'Beaver Task Team' }],
+  authors: [{ name: 'Shiodev - Beaver Foundation' }],
   robots: 'index, follow',
   icons: {
     icon: '/favicon.svg',
@@ -56,7 +57,9 @@ export default function RootLayout({
         >
           <Providers>
             <SessionProvider>
-              {children}
+              <CleanupProvider>
+                {children}
+              </CleanupProvider>
             </SessionProvider>
           </Providers>
           <Toaster />

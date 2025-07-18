@@ -22,6 +22,7 @@ interface HabitStore {
   isLoading: boolean
   error: string | null
   fetchHabits: () => Promise<void>
+  resetStore: () => void
 }
 
 export const useHabitStore = create<HabitStore>((set) => ({
@@ -38,5 +39,13 @@ export const useHabitStore = create<HabitStore>((set) => ({
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false })
     }
+  },
+
+  resetStore: () => {
+    set({
+      habits: [],
+      isLoading: false,
+      error: null
+    })
   }
 })) 

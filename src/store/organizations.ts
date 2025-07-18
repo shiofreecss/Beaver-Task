@@ -30,6 +30,7 @@ interface OrganizationState {
   deleteOrganization: (id: string) => Promise<void>
   getOrganizationById: (id: string) => Organization | undefined
   fetchOrganizations: (force?: boolean) => Promise<void>
+  resetStore: () => void
 }
 
 // Cache duration: 5 minutes
@@ -193,5 +194,12 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => ({
       console.error('Error fetching organizations:', error)
       throw error
     }
+  },
+
+  resetStore: () => {
+    set({
+      organizations: [],
+      lastFetchTime: null
+    })
   }
 })) 
