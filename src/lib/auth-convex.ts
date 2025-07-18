@@ -69,7 +69,7 @@ export const authOptions: NextAuthOptions = {
             }) as UserWithPassword | null;
           } catch (convexError) {
             console.error("Convex query failed:", convexError);
-            throw new Error(`Convex connection failed: ${convexError.message}`);
+            throw new Error(`Convex connection failed: ${String(convexError)}`);
           }
 
           if (!user) {
