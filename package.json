@@ -13,8 +13,6 @@
     "convex:deploy": "convex deploy",
     "prisma:generate": "prisma generate",
     "verify-deployment": "node scripts/verify-deployment.js",
-    "debug-auth": "node scripts/debug-auth.js",
-    "setup-env": "node scripts/setup-env.js",
     "deploy:netlify": "npm run build:prod && netlify deploy --prod --dir=.next",
     "deploy:verify": "npm run deploy:netlify && npm run verify-deployment"
   },
